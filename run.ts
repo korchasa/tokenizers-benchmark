@@ -55,10 +55,16 @@ interface Model {
     max_completion_tokens?: number | null;
     is_moderated?: boolean;
   };
+  output_modality?: string;
+  popularity?: number;
+  name?: string;
+  description?: string;
+  [key: string]: unknown; // Allow additional fields from API
 }
 
 interface ModelsResponse {
-  data: Model[];
+  data?: Model[];
+  models?: Model[];
   object?: string;
 }
 
@@ -219,7 +225,7 @@ USAGE:
 OPTIONS:
   --help, -h    Show this help
   --list        Show list of available files
-  --models      Show list of available text-to-text models (sorted by popularity)
+  --models      Show list of all available models (sorted by popularity)
   --verbose, -v Output raw API requests and responses
 
 PARAMETERS:
@@ -266,12 +272,40 @@ function showFileList() {
 
 /**
  * Checks if model is text-to-text (excludes vision, audio, image models)
+ * By default, assumes model is text-to-text unless explicitly marked otherwise
  */
 function isTextToTextModel(model: Model): boolean {
   const id = model.id.toLowerCase();
-  const modality = model.architecture?.modality?.toLowerCase() || "";
+  const name = model.name?.toLowerCase() || "";
+  const description = model.description?.toLowerCase() || "";
 
-  // Exclude known non-text models
+  // Check output_modality field first (if available)
+  if (model.output_modality) {
+    const modality = model.output_modality.toLowerCase();
+    if (modality === 'text') {
+      return true;
+    }
+    // If explicitly set to non-text, exclude
+    if (modality !== '' && modality !== 'text') {
+      return false;
+    }
+  }
+
+  // Check architecture.modality field
+  // Values can be "text->text", "text", "image->text", etc.
+  const architectureModality = model.architecture?.modality?.toLowerCase() || "";
+  if (architectureModality) {
+    // If modality contains "text" (like "text->text", "text", "image->text"), it's text-to-text
+    if (architectureModality.includes('text')) {
+      return true;
+    }
+    // If modality is explicitly set to non-text (like "image", "audio"), exclude
+    if (architectureModality !== '') {
+      return false;
+    }
+  }
+
+  // Exclude known non-text models by ID patterns
   const excludePatterns = [
     'vision',
     'image',
@@ -281,28 +315,36 @@ function isTextToTextModel(model: Model): boolean {
     'dall-e',
     'stable-diffusion',
     'midjourney',
-    'imagen'
+    'imagen',
+    'florence',
+    'clip',
+    'blip'
   ];
 
-  // Check if model ID contains exclude patterns
-  if (excludePatterns.some(pattern => id.includes(pattern))) {
+  // Check if model ID, name, or description contains exclude patterns
+  const allText = `${id} ${name} ${description}`;
+  if (excludePatterns.some(pattern => allText.includes(pattern))) {
     return false;
   }
 
-  // Check modality field if available
-  if (modality && modality !== 'text' && modality !== '') {
-    return false;
-  }
-
+  // By default, assume it's a text-to-text model
+  // Most LLM models are text-to-text unless explicitly marked otherwise
   return true;
 }
 
 /**
- * Gets list of text-to-text models from OpenRouter API
+ * Gets list of all models from OpenRouter API
  */
-async function getTextToTextModels(apiKey: string): Promise<string[]> {
+async function getAllModels(apiKey: string, verbose: boolean = false): Promise<Model[]> {
   try {
-    const response = await fetch(`${OPENROUTER_API_BASE}/models`, {
+    const url = `${OPENROUTER_API_BASE}/models`;
+
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Request URL: ${url}`);
+      console.error(`🔍 [VERBOSE] Authorization: Bearer ${apiKey.substring(0, 10)}...`);
+    }
+
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -312,8 +354,15 @@ async function getTextToTextModels(apiKey: string): Promise<string[]> {
       }
     });
 
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Response status: ${response.status} ${response.statusText}`);
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Error response body: ${errorText}`);
+      }
       let errorMessage = response.statusText;
       try {
         const errorData = JSON.parse(errorText);
@@ -324,20 +373,73 @@ async function getTextToTextModels(apiKey: string): Promise<string[]> {
       throw new Error(`API error: ${response.status} ${errorMessage}`);
     }
 
-    const data: ModelsResponse = await response.json();
-
-    if (!data.data || !Array.isArray(data.data)) {
-      throw new Error("Invalid response format from API");
+    const responseText = await response.text();
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Response body (first 500 chars): ${responseText.substring(0, 500)}...`);
     }
 
-    // Filter text-to-text models
-    const textModels = data.data.filter(isTextToTextModel);
+    let data: ModelsResponse | Model[];
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+    }
 
-    // Sort by popularity (if available) or by model ID
-    // Popular models often have shorter IDs or specific naming patterns
-    // We'll sort by: 1) owned_by (provider), 2) model ID
-    textModels.sort((a, b) => {
-      // First sort by provider (popular providers first)
+    // Handle different possible response structures
+    let modelsArray: Model[] = [];
+
+    if (Array.isArray(data)) {
+      // Response is directly an array
+      modelsArray = data;
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Response is array with ${modelsArray.length} models`);
+      }
+    } else if (data && typeof data === 'object') {
+      // Response is an object
+      if (data.data && Array.isArray(data.data)) {
+        // Response has data property with array
+        modelsArray = data.data;
+        if (verbose) {
+          console.error(`🔍 [VERBOSE] Response has data property with ${modelsArray.length} models`);
+        }
+      } else if (data.models && Array.isArray(data.models)) {
+        // Alternative structure with models property
+        modelsArray = data.models as unknown as Model[];
+        if (verbose) {
+          console.error(`🔍 [VERBOSE] Response has models property with ${modelsArray.length} models`);
+        }
+      } else {
+        if (verbose) {
+          console.error(`🔍 [VERBOSE] Response structure:`, JSON.stringify(data, null, 2).substring(0, 1000));
+        }
+        throw new Error("Invalid response format from API: expected array or object with 'data' or 'models' property");
+      }
+    } else {
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Unexpected response type:`, typeof data);
+      }
+      throw new Error("Invalid response format from API: expected array or object");
+    }
+
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Total models found: ${modelsArray.length}`);
+    }
+
+    // Debug: show first model structure
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Full response:`, JSON.stringify(modelsArray, null, 2));
+    }
+
+    // Sort by popularity (if available) or by provider/model ID
+    modelsArray.sort((a, b) => {
+      // First, if popularity field is available, sort by it (descending)
+      if (a.popularity !== undefined && b.popularity !== undefined) {
+        if (a.popularity !== b.popularity) {
+          return b.popularity - a.popularity; // Descending order
+        }
+      }
+
+      // Then sort by provider (popular providers first)
       const providerOrder: Record<string, number> = {
         'openai': 1,
         'anthropic': 2,
@@ -356,11 +458,11 @@ async function getTextToTextModels(apiKey: string): Promise<string[]> {
         return aOrder - bOrder;
       }
 
-      // Then sort by model ID alphabetically
+      // Finally sort by model ID alphabetically
       return a.id.localeCompare(b.id);
     });
 
-    return textModels.map(model => model.id);
+    return modelsArray;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`❌ Error fetching models: ${errorMessage}`);
@@ -369,15 +471,32 @@ async function getTextToTextModels(apiKey: string): Promise<string[]> {
 }
 
 /**
- * Shows list of text-to-text models
+ * Shows list of all models
  */
-async function showModelsList(apiKey: string) {
+async function showModelsList(apiKey: string, verbose: boolean = false) {
   try {
-    const models = await getTextToTextModels(apiKey);
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Fetching models from: ${OPENROUTER_API_BASE}/models`);
+    }
+
+    const models = await getAllModels(apiKey, verbose);
+
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Found ${models.length} models`);
+    }
+
+    if (models.length === 0) {
+      console.error("⚠️  No models found");
+      return;
+    }
 
     // Output to stdout (plain text, one model per line)
+    // Format: id: (architecture.modality) name
     models.forEach(model => {
-      console.log(model);
+      const modality = model.architecture?.modality || '';
+      const name = model.name || '';
+      const output = `${model.id}: (${modality}) ${name}`;
+      console.log(output);
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -413,7 +532,8 @@ async function main() {
   }
 
   if (args.includes('--models')) {
-    await showModelsList(API_KEY);
+    const verbose = args.includes('--verbose') || args.includes('-v');
+    await showModelsList(API_KEY, verbose);
     return;
   }
 
