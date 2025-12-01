@@ -153,6 +153,7 @@ All log messages (processing status, statistics, errors) are output to stderr.
 ✅ Successful: 73
 ❌ Errors: 0
 🔢 Total input tokens: 185432
+💰 Total estimated cost: 0.1234567890
 💾 Results saved to: ./results/anthropic-claude-3-haiku-beta.csv
 ```
 
@@ -185,6 +186,7 @@ The script will process each model sequentially and create separate CSV and JSON
 - **`--verbose` mode** for debugging with raw HTTP requests and API responses output
 - **Word counting** by delimiters (spaces and punctuation marks)
 - **Safe filename conversion**: Model IDs are automatically converted to filename-safe strings
+- **Cost tracking**: Accumulates and displays total estimated cost from API responses
 
 ## Language Code Mapping
 

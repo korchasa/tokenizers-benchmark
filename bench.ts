@@ -13,6 +13,7 @@ interface TokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
+  estimated_cost?: number;
 }
 
 interface OpenRouterResponse {
@@ -62,10 +63,15 @@ interface ModelsResponse {
   object?: string;
 }
 
+interface TokenCountResult {
+  tokens: number;
+  estimatedCost: number;
+}
+
 /**
- * Sends text to OpenRouter API and returns the number of input tokens
+ * Sends text to OpenRouter API and returns the number of input tokens and estimated cost
  */
-async function countTokens(text: string, filename: string, modelId: string, apiKey: string, verbose: boolean = false): Promise<number | null> {
+async function countTokens(text: string, filename: string, modelId: string, apiKey: string, verbose: boolean = false): Promise<TokenCountResult | null> {
   try {
     const requestBody = {
       model: modelId,
@@ -140,7 +146,10 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
     const data: OpenRouterResponse = JSON.parse(responseText);
 
     if (data.usage?.prompt_tokens) {
-      return data.usage.prompt_tokens;
+      return {
+        tokens: data.usage.prompt_tokens,
+        estimatedCost: data.usage.estimated_cost || 0
+      };
     } else {
       console.error(`❌ No token usage data for ${filename}`);
       return null;
@@ -578,6 +587,7 @@ async function processModel(
   let totalFiles = 0;
   let successfulFiles = 0;
   let totalTokens = 0;
+  let totalEstimatedCost = 0;
 
   for (const filePath of files) {
     const filename = filePath.split('/').pop() || filePath;
@@ -590,14 +600,15 @@ async function processModel(
 
     console.error(`🔄 Processing: ${filename} (${content.length} characters)`);
 
-    const tokenCount = await countTokens(content, filename, modelId, apiKey, verbose);
+    const result = await countTokens(content, filename, modelId, apiKey, verbose);
 
-    if (tokenCount !== null) {
+    if (result !== null) {
       const wordCount = countWords(content);
-      csvLines.push(`${filename},${content.length},${wordCount},${tokenCount}`);
-      console.error(`✅ ${filename}: ${wordCount} words, ${tokenCount} input tokens`);
+      csvLines.push(`${filename},${content.length},${wordCount},${result.tokens}`);
+      console.error(`✅ ${filename}: ${wordCount} words, ${result.tokens} input tokens`);
       successfulFiles++;
-      totalTokens += tokenCount;
+      totalTokens += result.tokens;
+      totalEstimatedCost += result.estimatedCost;
     } else {
       console.error(`❌ ${filename}: token counting error`);
     }
@@ -623,6 +634,7 @@ async function processModel(
   console.error(`✅ Successful: ${successfulFiles}`);
   console.error(`❌ Errors: ${totalFiles - successfulFiles}`);
   console.error(`🔢 Total input tokens: ${totalTokens}`);
+  console.error(`💰 Total estimated cost: ${totalEstimatedCost.toFixed(10)}`);
 }
 
 /**
