@@ -255,7 +255,7 @@ function readFileContent(filePath: string): string {
  */
 function showHelp() {
   console.error(`
-🚀 UDHR Token Counter - token counting via OpenRouter API
+🚀 Token Benchmarking - tokenizing benchmarking
 
 USAGE:
   ./bench.ts [options] <results_dir> [--model <model_id>]
@@ -266,6 +266,7 @@ OPTIONS:
   --model <id>     Model ID to use (if not specified, reads from models.txt)
   --languages      Show list of available languages
   --language <lang> Filter files by language name (e.g., "russian", "english")
+  --override       Overwrite existing result files
   --verbose, -v    Output raw API requests and responses
 
 PARAMETERS:
@@ -527,10 +528,19 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
     }
 
     // Output to stdout (plain text, one model per line)
-    // Format: id modularity
+    // Format: modality - id - prompt_price - days_since_creation
     models.forEach(model => {
       const modality = model.architecture?.modality || '';
-      const output = `${modality} - ${model.id}`;
+      const promptPrice = model.pricing?.prompt ? (parseFloat(model.pricing.prompt) * 1000000).toFixed(2) : 'N/A';
+      let daysSinceCreation = 'N/A';
+      if (model.created) {
+        const createdDate = new Date(model.created * 1000);
+        const now = new Date();
+        const diffTime = now.getTime() - createdDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        daysSinceCreation = diffDays.toString();
+      }
+      const output = `${modality} - ${model.id} - ${promptPrice} - ${daysSinceCreation} days old`;
       console.log(output);
     });
   } catch (error) {
@@ -548,10 +558,41 @@ async function processModel(
   resultsDir: string,
   apiKey: string,
   verbose: boolean,
-  languageFilter?: string
+  languageFilter?: string,
+  override: boolean = false
 ): Promise<void> {
   console.error(`\n🔄 Processing model: ${modelId}`);
   console.error("==================================================");
+
+  // Create filename for this model
+  const modelFilename = modelIdToFilename(modelId);
+  const csvPath = `${resultsDir}/${modelFilename}.csv`;
+  const jsonPath = `${resultsDir}/${modelFilename}.json`;
+
+  // Check if results already exist
+  if (!override) {
+    try {
+      const csvExists = await Deno.stat(csvPath).then(() => true).catch(() => false);
+      const jsonExists = await Deno.stat(jsonPath).then(() => true).catch(() => false);
+
+      if (csvExists || jsonExists) {
+        console.error(`⏭️  Skipping ${modelId} - results already exist`);
+        if (csvExists) {
+          console.error(`   CSV file exists: ${csvPath}`);
+        }
+        if (jsonExists) {
+          console.error(`   JSON file exists: ${jsonPath}`);
+        }
+        console.error(`   Use --override to force re-processing`);
+        return;
+      }
+    } catch (error) {
+      // If stat fails for other reasons, continue processing
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Error checking file existence:`, error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
 
   // Get model information
   const modelInfo = await getModelInfo(modelId, apiKey, verbose);
@@ -559,11 +600,6 @@ async function processModel(
     console.error(`❌ Model ${modelId} not found in API`);
     return;
   }
-
-  // Create filename for this model
-  const modelFilename = modelIdToFilename(modelId);
-  const csvPath = `${resultsDir}/${modelFilename}.csv`;
-  const jsonPath = `${resultsDir}/${modelFilename}.json`;
 
   // Save model info to JSON file
   try {
@@ -687,6 +723,8 @@ async function main() {
     ? args[languageIndex + 1]
     : undefined;
 
+  const override = args.includes('--override');
+
   // Get results directory (first non-option argument, excluding --model and --language values)
   const excludedArgs = new Set(['--model', '--language', specifiedModelId, languageFilter].filter(Boolean));
   const resultsDir = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
@@ -705,7 +743,7 @@ async function main() {
     Deno.exit(1);
   }
 
-  console.error("🚀 Starting UDHR token counting via OpenRouter API");
+  console.error("🚀 Starting token benchmarking via OpenRouter API");
   console.error("==================================================");
   console.error(`📁 Results directory: ${resultsDir}`);
 
@@ -728,7 +766,7 @@ async function main() {
 
   // Process each model
   for (const modelId of modelIds) {
-    await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter);
+    await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter, override);
   }
 
   console.error("");
