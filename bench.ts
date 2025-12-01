@@ -68,6 +68,17 @@ interface TokenCountResult {
   estimatedCost: number;
 }
 
+interface ModelProcessingStats {
+  modelId: string;
+  totalFiles: number;
+  successfulFiles: number;
+  errors: string[];
+  totalTokens: number;
+  totalEstimatedCost: number;
+  skipped: boolean;
+  hasErrors: boolean;
+}
+
 /**
  * Sends text to OpenRouter API and returns the number of input tokens and estimated cost
  */
@@ -80,7 +91,7 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
         content: text
       }
     ],
-    max_tokens: 1, // Minimal response, we only need tokens
+    max_tokens: 16, // Minimal response, we only need tokens
     temperature: 0
   };
 
@@ -592,7 +603,7 @@ async function processModel(
   verbose: boolean,
   languageFilter?: string,
   override: boolean = false
-): Promise<void> {
+): Promise<ModelProcessingStats> {
   console.error("\n==================================================");
   console.error(`🔄 Processing model: ${modelId}`);
 
@@ -616,7 +627,16 @@ async function processModel(
           console.error(`   JSON file exists: ${jsonPath}`);
         }
         console.error(`   Use --override to force re-processing`);
-        return;
+        return {
+          modelId,
+          totalFiles: 0,
+          successfulFiles: 0,
+          errors: [],
+          totalTokens: 0,
+          totalEstimatedCost: 0,
+          skipped: true,
+          hasErrors: false
+        };
       }
     } catch (error) {
       // If stat fails for other reasons, continue processing
@@ -630,7 +650,16 @@ async function processModel(
   const modelInfo = await getModelInfo(modelId, apiKey, verbose);
   if (!modelInfo) {
     console.error(`❌ Model ${modelId} not found in API`);
-    return;
+    return {
+      modelId,
+      totalFiles: 0,
+      successfulFiles: 0,
+      errors: [`Model ${modelId} not found in API`],
+      totalTokens: 0,
+      totalEstimatedCost: 0,
+      skipped: false,
+      hasErrors: true
+    };
   }
 
   // Get all files to process
@@ -647,15 +676,16 @@ async function processModel(
   let successfulFiles = 0;
   let totalTokens = 0;
   let totalEstimatedCost = 0;
-  let hasErrors = false;
+  const errors: string[] = [];
 
   for (const filePath of files) {
     const filename = filePath.split('/').pop() || filePath;
     const content = readFileContent(filePath);
 
     if (!content) {
+      const errorMsg = `Failed to read file: ${filename}`;
       console.error(`⚠️  Skipping ${filename} - read error`);
-      hasErrors = true;
+      errors.push(errorMsg);
       continue;
     }
 
@@ -671,8 +701,9 @@ async function processModel(
       totalTokens += result.tokens;
       totalEstimatedCost += result.estimatedCost;
     } else {
+      const errorMsg = `Token counting failed for file: ${filename}`;
       console.error(`❌ ${filename}: token counting error`);
-      hasErrors = true;
+      errors.push(errorMsg);
     }
 
     totalFiles++;
@@ -682,9 +713,18 @@ async function processModel(
   }
 
   // Don't save files if there were errors
-  if (hasErrors) {
+  if (errors.length > 0) {
     console.error(`❌ Errors occurred during processing. Files not saved.`);
-    return;
+    return {
+      modelId,
+      totalFiles,
+      successfulFiles,
+      errors,
+      totalTokens,
+      totalEstimatedCost,
+      skipped: false,
+      hasErrors: true
+    };
   }
 
   // Save model info to JSON file
@@ -692,8 +732,19 @@ async function processModel(
     await Deno.writeTextFile(jsonPath, JSON.stringify(modelInfo, null, 2));
     console.error(`💾 Model info saved to: ${jsonPath}`);
   } catch (error) {
+    const errorMsg = `Failed to save model info: ${error instanceof Error ? error.message : String(error)}`;
     console.error(`❌ Error saving model info:`, error instanceof Error ? error.message : String(error));
-    return;
+    errors.push(errorMsg);
+    return {
+      modelId,
+      totalFiles,
+      successfulFiles,
+      errors,
+      totalTokens,
+      totalEstimatedCost,
+      skipped: false,
+      hasErrors: true
+    };
   }
 
   // Save CSV file
@@ -701,20 +752,41 @@ async function processModel(
     await Deno.writeTextFile(csvPath, csvLines.join('\n') + '\n');
     console.error(`💾 Results saved to: ${csvPath}`);
   } catch (error) {
+    const errorMsg = `Failed to save CSV: ${error instanceof Error ? error.message : String(error)}`;
     console.error(`❌ Error saving CSV:`, error instanceof Error ? error.message : String(error));
-    return;
+    errors.push(errorMsg);
+    return {
+      modelId,
+      totalFiles,
+      successfulFiles,
+      errors,
+      totalTokens,
+      totalEstimatedCost,
+      skipped: false,
+      hasErrors: true
+    };
   }
 
   console.error("");
   console.error("📈 RESULTS:");
   console.error(`📁 Files processed: ${totalFiles}`);
   console.error(`✅ Successful: ${successfulFiles}`);
-  const errorCount = totalFiles - successfulFiles;
-  if (errorCount > 0) {
-    console.error(`❌ Errors: ${errorCount}`);
+  if (errors.length > 0) {
+    console.error(`❌ Errors: ${errors.length}`);
   }
   console.error(`🔢 Total input tokens: ${totalTokens}`);
   console.error(`💰 Total estimated cost: ${totalEstimatedCost.toFixed(10)}`);
+
+  return {
+    modelId,
+    totalFiles,
+    successfulFiles,
+    errors,
+    totalTokens,
+    totalEstimatedCost,
+    skipped: false,
+    hasErrors: errors.length > 0
+  };
 }
 
 /**
@@ -808,9 +880,64 @@ async function main() {
     Deno.exit(1);
   }
 
-  // Process each model
+  // Process each model and collect statistics
+  const allStats: ModelProcessingStats[] = [];
   for (const modelId of modelIds) {
-    await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter, override);
+    const stats = await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter, override);
+    allStats.push(stats);
+  }
+
+  // Calculate totals
+  const totalModels = allStats.length;
+  const processedModels = allStats.filter(s => !s.skipped).length;
+  const skippedModels = allStats.filter(s => s.skipped).length;
+  const modelsWithErrors = allStats.filter(s => s.hasErrors && !s.skipped).length;
+  const totalFiles = allStats.reduce((sum, s) => sum + s.totalFiles, 0);
+  const totalSuccessfulFiles = allStats.reduce((sum, s) => sum + s.successfulFiles, 0);
+  const totalErrors = allStats.reduce((sum, s) => sum + s.errors.length, 0);
+  const totalTokens = allStats.reduce((sum, s) => sum + s.totalTokens, 0);
+  const totalCost = allStats.reduce((sum, s) => sum + s.totalEstimatedCost, 0);
+
+  // Collect all errors
+  const allErrors: Array<{ modelId: string; errors: string[] }> = [];
+  for (const stats of allStats) {
+    if (stats.errors.length > 0) {
+      allErrors.push({ modelId: stats.modelId, errors: stats.errors });
+    }
+  }
+
+  // Print summary
+  console.error("");
+  console.error("==================================================");
+  console.error("📊 SUMMARY");
+  console.error("==================================================");
+  console.error(`🤖 Models processed: ${processedModels} of ${totalModels}`);
+  if (skippedModels > 0) {
+    console.error(`⏭️  Models skipped: ${skippedModels}`);
+  }
+  if (modelsWithErrors > 0) {
+    console.error(`❌ Models with errors: ${modelsWithErrors}`);
+  }
+  console.error(`📁 Total files processed: ${totalFiles}`);
+  console.error(`✅ Successfully processed: ${totalSuccessfulFiles}`);
+  if (totalErrors > 0) {
+    console.error(`❌ Total errors: ${totalErrors}`);
+  }
+  console.error(`🔢 Total tokens: ${totalTokens.toLocaleString()}`);
+  console.error(`💰 Total cost: ${totalCost.toFixed(10)}`);
+
+  // Print detailed errors
+  if (allErrors.length > 0) {
+    console.error("");
+    console.error("==================================================");
+    console.error("⚠️  ERRORS DETAILS");
+    console.error("==================================================");
+    for (const { modelId, errors } of allErrors) {
+      console.error(`\n❌ ${modelId} (${errors.length} error(s)):`);
+      for (const error of errors) {
+        console.error(`   - ${error}`);
+      }
+    }
   }
 
   console.error("");

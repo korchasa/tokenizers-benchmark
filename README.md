@@ -157,6 +157,24 @@ All log messages (processing status, statistics, errors) are output to stderr.
 💾 Results saved to: ./results/anthropic-claude-3-haiku-beta.csv
 ```
 
+**Summary output (after processing all models):**
+```
+==================================================
+📊 SUMMARY
+==================================================
+🤖 Models processed: 2 of 2
+📁 Total files processed: 146
+✅ Successfully processed: 146
+🔢 Total tokens: 370864
+💰 Total cost: 0.2469135780
+
+⚠️  ERRORS DETAILS
+==================================================
+❌ model-id (2 error(s)):
+   - Token counting failed for file: filename1.txt
+   - Failed to read file: filename2.txt
+```
+
 ### Example: Processing multiple models from models.txt
 
 If `models.txt` contains:
@@ -180,6 +198,8 @@ The script will process each model sequentially and create separate CSV and JSON
 - **Flexible model selection**: Specify a model via `--model` option or use `models.txt` file for batch processing
 - **Per-model results**: Each model's results are saved in separate CSV and JSON files
 - **Model information**: Full model parameters from API are saved alongside results
+- **Comprehensive summary**: Aggregated statistics across all processed models with total files, tokens, and cost
+- **Detailed error reporting**: Collects and displays all errors with specific messages per model
 - **Automatic 500ms delay** between requests to comply with API limits
 - **Network and API error handling** with detailed error messages
 - **Processes all UDHR texts** automatically from the `udhr/` directory
