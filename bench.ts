@@ -71,10 +71,10 @@ interface ModelsResponse {
 /**
  * Sends text to OpenRouter API and returns the number of input tokens
  */
-async function countTokens(text: string, filename: string, verbose: boolean = false): Promise<number | null> {
+async function countTokens(text: string, filename: string, modelId: string, verbose: boolean = false): Promise<number | null> {
   try {
     const requestBody = {
-      model: "anthropic/claude-3-haiku:beta", // Cheap model for token counting
+      model: modelId,
       messages: [
         {
           role: "user",
@@ -167,29 +167,15 @@ function countWords(text: string): number {
 }
 
 /**
- * Gets the list of files to process
+ * Gets the list of files to process from UDHR directory
  */
-function getFilesToProcess(specificFile?: string): string[] {
+function getFilesToProcess(): string[] {
   const udhrDir = "./udhr";
 
-  if (specificFile) {
-    // Add .txt extension if not present
-    const filename = specificFile.endsWith('.txt') ? specificFile : `${specificFile}.txt`;
-    const fullPath = `${udhrDir}/${filename}`;
-    try {
-      Deno.statSync(fullPath);
-      return [fullPath];
-    } catch {
-      console.error(`❌ File not found: ${fullPath}`);
-      console.error("💡 Use 'deno run --allow-read --allow-net --allow-env run.ts --list' to view available files");
-      Deno.exit(1);
-    }
-  }
-
   try {
-    const files = [];
+    const files: string[] = [];
     for (const entry of Deno.readDirSync(udhrDir)) {
-      if (entry.isFile && entry.name.endsWith('.txt')) {
+      if (entry.isFile && entry.name.endsWith('.txt') && entry.name !== 'models.txt') {
         files.push(`${udhrDir}/${entry.name}`);
       }
     }
@@ -197,6 +183,46 @@ function getFilesToProcess(specificFile?: string): string[] {
   } catch (error) {
     console.error(`❌ Error reading directory ${udhrDir}:`, error.message);
     Deno.exit(1);
+  }
+}
+
+/**
+ * Reads model IDs from models.txt file
+ */
+function readModelsFromFile(): string[] {
+  const modelsFile = "./models.txt";
+  try {
+    const content = Deno.readTextFileSync(modelsFile);
+    const models = content
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith('#'));
+    return models;
+  } catch (error) {
+    console.error(`❌ Error reading ${modelsFile}:`, error.message);
+    console.error("💡 Create models.txt file with one model ID per line");
+    Deno.exit(1);
+  }
+}
+
+/**
+ * Converts model ID to filename-safe string (replaces special characters with -)
+ */
+function modelIdToFilename(modelId: string): string {
+  return modelId.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+/**
+ * Gets model information by ID from the list of all models
+ */
+async function getModelInfo(modelId: string, apiKey: string, verbose: boolean = false): Promise<Model | null> {
+  try {
+    const allModels = await getAllModels(apiKey, verbose);
+    const model = allModels.find(m => m.id === modelId);
+    return model || null;
+  } catch (error) {
+    console.error(`❌ Error fetching model info for ${modelId}:`, error instanceof Error ? error.message : String(error));
+    return null;
   }
 }
 
@@ -220,24 +246,24 @@ function showHelp() {
 🚀 UDHR Token Counter - token counting via OpenRouter API
 
 USAGE:
-  deno run --allow-read --allow-net --allow-env run.ts [options] [file]
+  deno run --allow-read --allow-net --allow-env bench.ts [options] <results_dir> [--model <model_id>]
 
 OPTIONS:
-  --help, -h    Show this help
-  --list        Show list of available files
-  --models      Show list of all available models
-  --verbose, -v Output raw API requests and responses
+  --help, -h       Show this help
+  --list           Show list of available files
+  --models         Show list of all available models
+  --model <id>     Model ID to use (if not specified, reads from models.txt)
+  --verbose, -v    Output raw API requests and responses
 
 PARAMETERS:
-  file          File name from udhr/ folder (optional, without .txt extension)
-                If not specified, all files are processed
+  results_dir      Path to directory where results will be saved
 
 EXAMPLES:
-  deno run --allow-read --allow-net --allow-env run.ts
-  deno run --allow-read --allow-net --allow-env run.ts eng_ks
-  deno run --allow-read --allow-net --allow-env run.ts --verbose eng_ks
-  deno run --allow-read --allow-net --allow-env run.ts --list
-  deno run --allow-read --allow-net --allow-env run.ts --models
+  deno run --allow-read --allow-net --allow-env bench.ts ./results
+  deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta
+  deno run --allow-read --allow-net --allow-env bench.ts ./results --verbose
+  deno run --allow-read --allow-net --allow-env bench.ts --list
+  deno run --allow-read --allow-net --allow-env bench.ts --models
 
 ENVIRONMENT VARIABLES:
   OPENROUTER_API_KEY    OpenRouter API key (required)
@@ -252,7 +278,7 @@ function showFileList() {
   console.error("");
 
   try {
-    const files = [];
+    const files: string[] = [];
     for (const entry of Deno.readDirSync("./udhr")) {
       if (entry.isFile && entry.name.endsWith('.txt')) {
         files.push(entry.name);
@@ -476,6 +502,96 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
 }
 
 /**
+ * Processes files for a single model and saves results
+ */
+async function processModel(
+  modelId: string,
+  resultsDir: string,
+  apiKey: string,
+  verbose: boolean
+): Promise<void> {
+  console.error(`\n🔄 Processing model: ${modelId}`);
+  console.error("==================================================");
+
+  // Get model information
+  const modelInfo = await getModelInfo(modelId, apiKey, verbose);
+  if (!modelInfo) {
+    console.error(`❌ Model ${modelId} not found in API`);
+    return;
+  }
+
+  // Create filename for this model
+  const modelFilename = modelIdToFilename(modelId);
+  const csvPath = `${resultsDir}/${modelFilename}.csv`;
+  const jsonPath = `${resultsDir}/${modelFilename}.json`;
+
+  // Save model info to JSON file
+  try {
+    await Deno.writeTextFile(jsonPath, JSON.stringify(modelInfo, null, 2));
+    console.error(`💾 Model info saved to: ${jsonPath}`);
+  } catch (error) {
+    console.error(`❌ Error saving model info:`, error instanceof Error ? error.message : String(error));
+    return;
+  }
+
+  // Get all files to process
+  const files = getFilesToProcess();
+  console.error(`📊 Files to process: ${files.length}`);
+
+  // Prepare CSV content
+  const csvLines: string[] = ["filename,characters,words,tokens"];
+
+  let totalFiles = 0;
+  let successfulFiles = 0;
+  let totalTokens = 0;
+
+  for (const filePath of files) {
+    const filename = filePath.split('/').pop() || filePath;
+    const content = readFileContent(filePath);
+
+    if (!content) {
+      console.error(`⚠️  Skipping ${filename} - read error`);
+      continue;
+    }
+
+    console.error(`🔄 Processing: ${filename} (${content.length} characters)`);
+
+    const tokenCount = await countTokens(content, filename, modelId, verbose);
+
+    if (tokenCount !== null) {
+      const wordCount = countWords(content);
+      csvLines.push(`${filename},${content.length},${wordCount},${tokenCount}`);
+      console.error(`✅ ${filename}: ${wordCount} words, ${tokenCount} input tokens`);
+      successfulFiles++;
+      totalTokens += tokenCount;
+    } else {
+      console.error(`❌ ${filename}: token counting error`);
+    }
+
+    totalFiles++;
+
+    // Small delay between requests to not exceed limits
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  // Save CSV file
+  try {
+    await Deno.writeTextFile(csvPath, csvLines.join('\n') + '\n');
+    console.error(`💾 Results saved to: ${csvPath}`);
+  } catch (error) {
+    console.error(`❌ Error saving CSV:`, error instanceof Error ? error.message : String(error));
+    return;
+  }
+
+  console.error("");
+  console.error("📈 RESULTS:");
+  console.error(`📁 Files processed: ${totalFiles}`);
+  console.error(`✅ Successful: ${successfulFiles}`);
+  console.error(`❌ Errors: ${totalFiles - successfulFiles}`);
+  console.error(`🔢 Total input tokens: ${totalTokens}`);
+}
+
+/**
  * Main function
  */
 async function main() {
@@ -497,7 +613,7 @@ async function main() {
   if (!API_KEY) {
     console.error("❌ OPENROUTER_API_KEY not found in environment variables");
     console.error("Set the variable: export OPENROUTER_API_KEY=your_key_here");
-    console.error("Run 'deno run --allow-read --allow-net --allow-env run.ts --help' for help");
+    console.error("Run 'deno run --allow-read --allow-net --allow-env bench.ts --help' for help");
     Deno.exit(1);
   }
 
@@ -508,65 +624,60 @@ async function main() {
   }
 
   const verbose = args.includes('--verbose') || args.includes('-v');
-  const specificFile = args.find(arg => !arg.startsWith('-')); // First argument without dash
+
+  // Parse arguments
+  const modelIndex = args.indexOf('--model');
+  const specifiedModelId = modelIndex !== -1 && modelIndex + 1 < args.length
+    ? args[modelIndex + 1]
+    : null;
+
+  // Get results directory (first non-option argument, excluding --model value)
+  const excludedArgs = new Set(['--model', specifiedModelId].filter(Boolean));
+  const resultsDir = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
+
+  if (!resultsDir) {
+    console.error("❌ Results directory not specified");
+    showHelp();
+    Deno.exit(1);
+  }
+
+  // Ensure results directory exists
+  try {
+    await Deno.mkdir(resultsDir, { recursive: true });
+  } catch (error) {
+    console.error(`❌ Error creating results directory:`, error instanceof Error ? error.message : String(error));
+    Deno.exit(1);
+  }
 
   console.error("🚀 Starting UDHR token counting via OpenRouter API");
   console.error("==================================================");
+  console.error(`📁 Results directory: ${resultsDir}`);
 
-  if (specificFile) {
-    console.error(`📁 Processing file: ${specificFile}`);
+  // Get list of models to process
+  const modelIds: string[] = [];
+  if (specifiedModelId) {
+    modelIds.push(specifiedModelId);
+    console.error(`📋 Using specified model: ${specifiedModelId}`);
   } else {
-    console.error("📁 Processing all files in udhr/ directory");
+    const modelsFromFile = readModelsFromFile();
+    modelIds.push(...modelsFromFile);
+    console.error(`📋 Using models from models.txt: ${modelIds.length} model(s)`);
   }
 
-  const files = getFilesToProcess(specificFile);
-  console.error(`📊 Files found: ${files.length}`);
-  console.error("");
+  if (modelIds.length === 0) {
+    console.error("❌ No models specified");
+    console.error("💡 Use --model <id> or create models.txt file");
+    Deno.exit(1);
+  }
 
-  // Output CSV header to stdout
-  console.log("filename,characters,words,tokens");
-
-  let totalFiles = 0;
-  let successfulFiles = 0;
-  let totalTokens = 0;
-
-  for (const filePath of files) {
-    const filename = filePath.split('/').pop() || filePath;
-    const content = readFileContent(filePath);
-
-    if (!content) {
-      console.error(`⚠️  Skipping ${filename} - read error`);
-      continue;
-    }
-
-    console.error(`🔄 Processing: ${filename} (${content.length} characters)`);
-
-    const tokenCount = await countTokens(content, filename, verbose);
-
-    if (tokenCount !== null) {
-      const wordCount = countWords(content);
-      // Output CSV data to stdout
-      console.log(`${filename},${content.length},${wordCount},${tokenCount}`);
-      console.error(`✅ ${filename}: ${wordCount} words, ${tokenCount} input tokens`);
-      successfulFiles++;
-      totalTokens += tokenCount;
-    } else {
-      console.error(`❌ ${filename}: token counting error`);
-    }
-
-    totalFiles++;
-
-    // Small delay between requests to not exceed limits
-    await new Promise(resolve => setTimeout(resolve, 500));
+  // Process each model
+  for (const modelId of modelIds) {
+    await processModel(modelId, resultsDir, API_KEY, verbose);
   }
 
   console.error("");
   console.error("==================================================");
-  console.error("📈 RESULTS:");
-  console.error(`📁 Files processed: ${totalFiles}`);
-  console.error(`✅ Successful: ${successfulFiles}`);
-  console.error(`❌ Errors: ${totalFiles - successfulFiles}`);
-  console.error(`🔢 Total input tokens: ${totalTokens}`);
+  console.error("✅ All models processed!");
 }
 
 // Запуск скрипта

@@ -21,44 +21,77 @@ UDHR texts in different languages are taken from the [uiuc-sst/udhr](https://git
 
 For convenience, a `run` script is created in the project root that automatically applies all necessary Deno flags.
 
-### Count tokens for all files in the udhr/ folder
+### Basic usage
+
+The script requires a results directory path where CSV and JSON files will be saved:
+
 ```bash
-./run
+./run <results_dir>
 # or
-deno run --allow-read --allow-net --allow-env run.ts
+deno run --allow-read --allow-net --allow-env bench.ts <results_dir>
 ```
 
-### Count tokens for a specific file
+### Specify a model
+
+To use a specific model, use the `--model` option:
+
 ```bash
-./run eng_ks
+./run ./results --model anthropic/claude-3-haiku:beta
 # or
-deno run --allow-read --allow-net --allow-env run.ts eng_ks
+deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta
+```
+
+### Use models from models.txt
+
+If no model is specified, the script reads model IDs from `models.txt` file (one model per line):
+
+```bash
+# Create models.txt with model IDs, one per line:
+# anthropic/claude-3-haiku:beta
+# openai/gpt-4o-mini
+# meta-llama/llama-3.1-8b-instruct
+
+./run ./results
 ```
 
 ### View help
 ```bash
 ./run --help
 # or
-deno run --allow-read --allow-env run.ts --help
+deno run --allow-read --allow-net --allow-env bench.ts --help
 ```
 
 ### View list of available files
 ```bash
 ./run --list
 # or
-deno run --allow-read --allow-env run.ts --list
+deno run --allow-read --allow-env bench.ts --list
+```
+
+### View list of available models
+```bash
+./run --models
+# or
+deno run --allow-read --allow-net --allow-env bench.ts --models
 ```
 
 ### Detailed output with raw API requests and responses
 ```bash
-./run --verbose eng_ks
+./run ./results --model anthropic/claude-3-haiku:beta --verbose
 # or
-deno run --allow-read --allow-net --allow-env run.ts --verbose eng_ks
+deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
 ```
 
 ## Output Data
 
-The script outputs data in CSV format to stdout:
+The script saves results to files in the specified results directory. For each model, two files are created:
+
+1. **CSV file** (`<model-id>.csv`) - Contains token counting results for all UDHR texts
+2. **JSON file** (`<model-id>.json`) - Contains full model parameters from the API response
+
+### CSV Format
+
+The CSV file contains the following columns:
 ```
 filename,characters,words,tokens
 eng_ks.txt,10638,1682,2847
@@ -72,24 +105,42 @@ Columns:
 - `words`: number of words (delimiters: spaces and punctuation)
 - `tokens`: number of input tokens from OpenRouter API
 
-All other messages (logs, statistics, errors) are output to stderr.
+### Model ID to Filename Conversion
+
+Model IDs are converted to filename-safe strings by replacing special characters with `-`. For example:
+- `anthropic/claude-3-haiku:beta` → `anthropic-claude-3-haiku-beta.csv`
+- `openai/gpt-4o-mini` → `openai-gpt-4o-mini.csv`
+
+### JSON Format
+
+The JSON file contains the complete model information from the OpenRouter API, including:
+- Model ID, name, description
+- Context length
+- Pricing information
+- Architecture details
+- And other model parameters
+
+All log messages (processing status, statistics, errors) are output to stderr.
 
 ## Output Examples
 
-**stdout (CSV data):**
-```
-filename,characters,words,tokens
-eng_ks.txt,10638,1682,2847
-rus_sd.txt,21000,2956,3156
-...
+### Example: Processing with a single model
+
+```bash
+./run ./results --model anthropic/claude-3-haiku:beta
 ```
 
 **stderr (logs and statistics):**
 ```
 🚀 Starting UDHR token counting via OpenRouter API
 ==================================================
-📁 Processing all files in udhr/ directory
-📊 Files found: 73
+📁 Results directory: ./results
+📋 Using specified model: anthropic/claude-3-haiku:beta
+
+🔄 Processing model: anthropic/claude-3-haiku:beta
+==================================================
+💾 Model info saved to: ./results/anthropic-claude-3-haiku-beta.json
+📊 Files to process: 73
 
 🔄 Processing: eng_ks.txt (10638 characters)
 ✅ eng_ks.txt: 1682 words, 2847 input tokens
@@ -97,23 +148,43 @@ rus_sd.txt,21000,2956,3156
 ✅ rus_sd.txt: 2956 words, 3156 input tokens
 ...
 
-==================================================
 📈 RESULTS:
 📁 Files processed: 73
 ✅ Successful: 73
 ❌ Errors: 0
 🔢 Total input tokens: 185432
+💾 Results saved to: ./results/anthropic-claude-3-haiku-beta.csv
 ```
+
+### Example: Processing multiple models from models.txt
+
+If `models.txt` contains:
+```
+anthropic/claude-3-haiku:beta
+openai/gpt-4o-mini
+```
+
+```bash
+./run ./results
+```
+
+The script will process each model sequentially and create separate CSV and JSON files for each:
+- `./results/anthropic-claude-3-haiku-beta.csv`
+- `./results/anthropic-claude-3-haiku-beta.json`
+- `./results/openai-gpt-4o-mini.csv`
+- `./results/openai-gpt-4o-mini.json`
 
 ## Features
 
-- Uses `anthropic/claude-3-haiku:beta` model for minimal costs
-- Automatic 500ms delay between requests to comply with limits
-- Network and API error handling
-- Support for processing all files or a specific file
-- `--verbose` mode for debugging with raw HTTP requests and API responses output
-- Results output in CSV format (stdout), all logs to stderr
-- Word counting by delimiters (spaces and punctuation marks)
+- **Flexible model selection**: Specify a model via `--model` option or use `models.txt` file for batch processing
+- **Per-model results**: Each model's results are saved in separate CSV and JSON files
+- **Model information**: Full model parameters from API are saved alongside results
+- **Automatic 500ms delay** between requests to comply with API limits
+- **Network and API error handling** with detailed error messages
+- **Processes all UDHR texts** automatically from the `udhr/` directory
+- **`--verbose` mode** for debugging with raw HTTP requests and API responses output
+- **Word counting** by delimiters (spaces and punctuation marks)
+- **Safe filename conversion**: Model IDs are automatically converted to filename-safe strings
 
 ## Language Code Mapping
 
