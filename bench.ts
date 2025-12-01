@@ -13,7 +13,8 @@ interface TokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
-  estimated_cost?: number;
+  cost?: number;
+  estimated_cost?: number; // Keep for backward compatibility
 }
 
 interface OpenRouterResponse {
@@ -92,7 +93,10 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
       }
     ],
     max_tokens: 16, // Minimal response, we only need tokens
-    temperature: 0
+    temperature: 0,
+    usage: {
+      include: true
+    }
   };
 
   const requestPayload = JSON.stringify(requestBody, null, 2);
@@ -156,7 +160,7 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
     const responseText = await response.text();
     if (verbose) {
       console.error(`🔍 [VERBOSE] Response Body:`);
-      console.error(responseText);
+      console.error(responseText.trim());
       console.error(`🔍 [VERBOSE] ---`);
     }
 
@@ -179,7 +183,7 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
     if (data.usage?.prompt_tokens) {
       return {
         tokens: data.usage.prompt_tokens,
-        estimatedCost: data.usage.estimated_cost || 0
+        estimatedCost: data.usage.cost || data.usage.estimated_cost || 0
       };
     } else {
       // Always output raw request and response when no token usage data
@@ -570,10 +574,24 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
       return;
     }
 
-    // Output to stdout (plain text, one model per line)
-    // Format: modality - id - prompt_price - days_since_creation
-    models.forEach(model => {
+    // Filter models by modality: only text->text and text+image->text
+    const allowedModalities = ['text->text', 'text+image->text'];
+    const filteredModels = models.filter(model => {
       const modality = model.architecture?.modality || '';
+      return allowedModalities.includes(modality);
+    });
+
+    if (verbose) {
+      console.error(`🔍 [VERBOSE] Filtered to ${filteredModels.length} models with allowed modalities`);
+    }
+
+    if (filteredModels.length === 0) {
+      console.error("⚠️  No models found with allowed modalities (text->text, text+image->text)");
+      return;
+    }
+
+    // Prepare data for table
+    const tableData = filteredModels.map(model => {
       const promptPrice = model.pricing?.prompt ? (parseFloat(model.pricing.prompt) * 1000000).toFixed(2) : 'N/A';
       let daysSinceCreation = 'N/A';
       if (model.created) {
@@ -583,7 +601,37 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         daysSinceCreation = diffDays.toString();
       }
-      const output = `${modality} - ${model.id} - ${promptPrice} - ${daysSinceCreation} days old`;
+      return {
+        id: model.id,
+        promptPrice: promptPrice,
+        daysOld: daysSinceCreation
+      };
+    });
+
+    // Calculate column widths
+    const idWidth = Math.max(
+      'Model ID'.length,
+      ...tableData.map(row => row.id.length)
+    );
+    const priceWidth = Math.max(
+      'Price ($/1M)'.length,
+      ...tableData.map(row => row.promptPrice.length)
+    );
+    const daysWidth = Math.max(
+      'Days Old'.length,
+      ...tableData.map(row => row.daysOld.length)
+    );
+
+    // Print table header
+    const header = `| ${'Model ID'.padEnd(idWidth)} | ${'Price ($/1M)'.padStart(priceWidth)} | ${'Days Old'.padStart(daysWidth)} |`;
+    const separator = `|${'-'.repeat(idWidth + 2)}|${'-'.repeat(priceWidth + 2)}|${'-'.repeat(daysWidth + 2)}|`;
+    console.log(header);
+    console.log(separator);
+
+    // Print table rows
+    tableData.forEach(row => {
+      const daysText = row.daysOld === 'N/A' ? 'N/A' : `${row.daysOld}`;
+      const output = `| ${row.id.padEnd(idWidth)} | ${row.promptPrice.padStart(priceWidth)} | ${daysText.padStart(daysWidth)} |`;
       console.log(output);
     });
   } catch (error) {

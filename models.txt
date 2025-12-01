@@ -1,10 +1,9 @@
 alibaba/tongyi-deepresearch-30b-a3b
-anthropic/claude-3.5-haiku-20241022
+anthropic/claude-3.5-haiku
 anthropic/claude-haiku-4.5
-baidu/ernie-4.5-21b-a3b
 deepseek/deepseek-r1-0528-qwen3-8b
 deepseek/deepseek-v3.2-exp
-google/gemini-2.0-flash-exp
+google/gemini-2.0-flash-lite-001
 google/gemini-2.5-flash-lite
 google/gemini-3-pro-preview
 ibm-granite/granite-4.0-h-micro
