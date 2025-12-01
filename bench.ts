@@ -72,20 +72,21 @@ interface TokenCountResult {
  * Sends text to OpenRouter API and returns the number of input tokens and estimated cost
  */
 async function countTokens(text: string, filename: string, modelId: string, apiKey: string, verbose: boolean = false): Promise<TokenCountResult | null> {
-  try {
-    const requestBody = {
-      model: modelId,
-      messages: [
-        {
-          role: "user",
-          content: text
-        }
-      ],
-      max_tokens: 1, // Minimal response, we only need tokens
-      temperature: 0
-    };
+  const requestBody = {
+    model: modelId,
+    messages: [
+      {
+        role: "user",
+        content: text
+      }
+    ],
+    max_tokens: 1, // Minimal response, we only need tokens
+    temperature: 0
+  };
 
-    const requestPayload = JSON.stringify(requestBody, null, 2);
+  const requestPayload = JSON.stringify(requestBody, null, 2);
+
+  try {
 
     if (verbose) {
       console.error(`🔍 [VERBOSE] Request to OpenRouter API for ${filename}:`);
@@ -122,17 +123,22 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
 
     if (!response.ok) {
       const errorData = await response.text();
-      if (verbose) {
-        console.error(`🔍 [VERBOSE] Error Response Body:`);
-        console.error(errorData);
-      }
+      // Always output raw request and response on error
+      console.error(`❌ API error for ${filename}:`);
+      console.error(`Request URL: ${OPENROUTER_API_URL}`);
+      console.error(`Request Body:`);
+      console.error(requestPayload);
+      console.error(`Response Status: ${response.status} ${response.statusText}`);
+      console.error(`Response Body:`);
+      console.error(errorData);
       let parsedError;
       try {
         parsedError = JSON.parse(errorData);
       } catch {
         parsedError = { error: { message: errorData } };
       }
-      console.error(`❌ API error for ${filename}:`, parsedError.error?.message || response.statusText);
+      const errorMessage = parsedError.error?.message || response.statusText;
+      console.error(`Error message: ${errorMessage}`);
       return null;
     }
 
@@ -143,7 +149,21 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
       console.error(`🔍 [VERBOSE] ---`);
     }
 
-    const data: OpenRouterResponse = JSON.parse(responseText);
+    let data: OpenRouterResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      // Always output raw request and response on parse error
+      console.error(`❌ JSON parse error for ${filename}:`);
+      console.error(`Request URL: ${OPENROUTER_API_URL}`);
+      console.error(`Request Body:`);
+      console.error(requestPayload);
+      console.error(`Response Status: ${response.status} ${response.statusText}`);
+      console.error(`Response Body:`);
+      console.error(responseText);
+      console.error(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      return null;
+    }
 
     if (data.usage?.prompt_tokens) {
       return {
@@ -151,11 +171,23 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
         estimatedCost: data.usage.estimated_cost || 0
       };
     } else {
-      console.error(`❌ No token usage data for ${filename}`);
+      // Always output raw request and response when no token usage data
+      console.error(`❌ No token usage data for ${filename}:`);
+      console.error(`Request URL: ${OPENROUTER_API_URL}`);
+      console.error(`Request Body:`);
+      console.error(requestPayload);
+      console.error(`Response Status: ${response.status} ${response.statusText}`);
+      console.error(`Response Body:`);
+      console.error(responseText);
       return null;
     }
   } catch (error) {
-    console.error(`❌ Network error for ${filename}:`, error.message);
+    // Always output raw request on network error
+    console.error(`❌ Network error for ${filename}:`);
+    console.error(`Request URL: ${OPENROUTER_API_URL}`);
+    console.error(`Request Body:`);
+    console.error(requestPayload);
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   }
 }
@@ -561,8 +593,8 @@ async function processModel(
   languageFilter?: string,
   override: boolean = false
 ): Promise<void> {
-  console.error(`\n🔄 Processing model: ${modelId}`);
-  console.error("==================================================");
+  console.error("\n==================================================");
+  console.error(`🔄 Processing model: ${modelId}`);
 
   // Create filename for this model
   const modelFilename = modelIdToFilename(modelId);
@@ -601,15 +633,6 @@ async function processModel(
     return;
   }
 
-  // Save model info to JSON file
-  try {
-    await Deno.writeTextFile(jsonPath, JSON.stringify(modelInfo, null, 2));
-    console.error(`💾 Model info saved to: ${jsonPath}`);
-  } catch (error) {
-    console.error(`❌ Error saving model info:`, error instanceof Error ? error.message : String(error));
-    return;
-  }
-
   // Get all files to process
   const files = getFilesToProcess(languageFilter);
   if (languageFilter) {
@@ -618,12 +641,13 @@ async function processModel(
   console.error(`📊 Files to process: ${files.length}`);
 
   // Prepare CSV content
-  const csvLines: string[] = ["filename,characters,words,tokens"];
+  const csvLines: string[] = ["filename,characters,words,tokens,model_id"];
 
   let totalFiles = 0;
   let successfulFiles = 0;
   let totalTokens = 0;
   let totalEstimatedCost = 0;
+  let hasErrors = false;
 
   for (const filePath of files) {
     const filename = filePath.split('/').pop() || filePath;
@@ -631,6 +655,7 @@ async function processModel(
 
     if (!content) {
       console.error(`⚠️  Skipping ${filename} - read error`);
+      hasErrors = true;
       continue;
     }
 
@@ -640,19 +665,35 @@ async function processModel(
 
     if (result !== null) {
       const wordCount = countWords(content);
-      csvLines.push(`${filename},${content.length},${wordCount},${result.tokens}`);
+      csvLines.push(`${filename},${content.length},${wordCount},${result.tokens},${modelId}`);
       console.error(`✅ ${filename}: ${wordCount} words, ${result.tokens} input tokens`);
       successfulFiles++;
       totalTokens += result.tokens;
       totalEstimatedCost += result.estimatedCost;
     } else {
       console.error(`❌ ${filename}: token counting error`);
+      hasErrors = true;
     }
 
     totalFiles++;
 
     // Small delay between requests to not exceed limits
     await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  // Don't save files if there were errors
+  if (hasErrors) {
+    console.error(`❌ Errors occurred during processing. Files not saved.`);
+    return;
+  }
+
+  // Save model info to JSON file
+  try {
+    await Deno.writeTextFile(jsonPath, JSON.stringify(modelInfo, null, 2));
+    console.error(`💾 Model info saved to: ${jsonPath}`);
+  } catch (error) {
+    console.error(`❌ Error saving model info:`, error instanceof Error ? error.message : String(error));
+    return;
   }
 
   // Save CSV file
@@ -668,7 +709,10 @@ async function processModel(
   console.error("📈 RESULTS:");
   console.error(`📁 Files processed: ${totalFiles}`);
   console.error(`✅ Successful: ${successfulFiles}`);
-  console.error(`❌ Errors: ${totalFiles - successfulFiles}`);
+  const errorCount = totalFiles - successfulFiles;
+  if (errorCount > 0) {
+    console.error(`❌ Errors: ${errorCount}`);
+  }
   console.error(`🔢 Total input tokens: ${totalTokens}`);
   console.error(`💰 Total estimated cost: ${totalEstimatedCost.toFixed(10)}`);
 }
