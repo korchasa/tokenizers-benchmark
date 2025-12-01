@@ -7,13 +7,7 @@
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
 
-// Get API key from environment variable
-const API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-if (!API_KEY) {
-  console.error("❌ OPENROUTER_API_KEY not found in environment variables");
-  console.error("Set the variable: export OPENROUTER_API_KEY=your_key_here");
-  Deno.exit(1);
-}
+// API key will be retrieved in main() function when needed
 
 interface TokenUsage {
   prompt_tokens: number;
@@ -71,7 +65,7 @@ interface ModelsResponse {
 /**
  * Sends text to OpenRouter API and returns the number of input tokens
  */
-async function countTokens(text: string, filename: string, modelId: string, verbose: boolean = false): Promise<number | null> {
+async function countTokens(text: string, filename: string, modelId: string, apiKey: string, verbose: boolean = false): Promise<number | null> {
   try {
     const requestBody = {
       model: modelId,
@@ -91,7 +85,7 @@ async function countTokens(text: string, filename: string, modelId: string, verb
       console.error(`🔍 [VERBOSE] Request to OpenRouter API for ${filename}:`);
       console.error(`🔍 [VERBOSE] URL: ${OPENROUTER_API_URL}`);
       console.error(`🔍 [VERBOSE] Headers:`);
-      console.error(`🔍 [VERBOSE]   Authorization: Bearer ${API_KEY.substring(0, 10)}...`);
+      console.error(`🔍 [VERBOSE]   Authorization: Bearer ${apiKey.substring(0, 10)}...`);
       console.error(`🔍 [VERBOSE]   Content-Type: application/json`);
       console.error(`🔍 [VERBOSE]   HTTP-Referer: https://github.com/your-repo`);
       console.error(`🔍 [VERBOSE]   X-Title: UDHR Token Counter`);
@@ -103,7 +97,7 @@ async function countTokens(text: string, filename: string, modelId: string, verb
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://github.com/your-repo", // Replace with your repository
         "X-Title": "UDHR Token Counter"
@@ -168,14 +162,23 @@ function countWords(text: string): number {
 
 /**
  * Gets the list of files to process from UDHR directory
+ * @param languageFilter Optional language name to filter files (e.g., "russian", "english")
  */
-function getFilesToProcess(): string[] {
+function getFilesToProcess(languageFilter?: string): string[] {
   const udhrDir = "./udhr";
 
   try {
     const files: string[] = [];
     for (const entry of Deno.readDirSync(udhrDir)) {
       if (entry.isFile && entry.name.endsWith('.txt') && entry.name !== 'models.txt') {
+        // If language filter is specified, check if file matches
+        if (languageFilter) {
+          // Remove .txt extension and check if it matches the language filter
+          const fileLang = entry.name.replace(/\.txt$/, '');
+          if (fileLang !== languageFilter) {
+            continue;
+          }
+        }
         files.push(`${udhrDir}/${entry.name}`);
       }
     }
@@ -250,9 +253,10 @@ USAGE:
 
 OPTIONS:
   --help, -h       Show this help
-  --list           Show list of available files
   --models         Show list of all available models
   --model <id>     Model ID to use (if not specified, reads from models.txt)
+  --languages      Show list of available languages
+  --language <lang> Filter files by language name (e.g., "russian", "english")
   --verbose, -v    Output raw API requests and responses
 
 PARAMETERS:
@@ -261,8 +265,9 @@ PARAMETERS:
 EXAMPLES:
   ./bench.ts ./results
   ./bench.ts ./results --model anthropic/claude-3-haiku:beta
+  ./bench.ts ./results --language russian
   ./bench.ts ./results --verbose
-  ./bench.ts --list
+  ./bench.ts --languages
   ./bench.ts --models
 
 ENVIRONMENT VARIABLES:
@@ -293,6 +298,31 @@ function showFileList() {
     console.error(`Total files: ${files.length}`);
   } catch (error) {
     console.error("❌ Error reading udhr/ directory:", error.message);
+  }
+}
+
+/**
+ * Shows list of available languages
+ */
+function showLanguagesList() {
+  console.error("🌐 Available languages:");
+  console.error("");
+
+  try {
+    const languages: string[] = [];
+    for (const entry of Deno.readDirSync("./udhr")) {
+      if (entry.isFile && entry.name.endsWith('.txt') && entry.name !== 'models.txt') {
+        const langName = entry.name.replace(/\.txt$/, '');
+        languages.push(langName);
+      }
+    }
+
+    languages.sort().forEach(lang => {
+      console.log(lang);
+    });
+  } catch (error) {
+    console.error("❌ Error reading udhr/ directory:", error.message);
+    Deno.exit(1);
   }
 }
 
@@ -508,7 +538,8 @@ async function processModel(
   modelId: string,
   resultsDir: string,
   apiKey: string,
-  verbose: boolean
+  verbose: boolean,
+  languageFilter?: string
 ): Promise<void> {
   console.error(`\n🔄 Processing model: ${modelId}`);
   console.error("==================================================");
@@ -535,7 +566,10 @@ async function processModel(
   }
 
   // Get all files to process
-  const files = getFilesToProcess();
+  const files = getFilesToProcess(languageFilter);
+  if (languageFilter) {
+    console.error(`🌐 Language filter: ${languageFilter}`);
+  }
   console.error(`📊 Files to process: ${files.length}`);
 
   // Prepare CSV content
@@ -556,7 +590,7 @@ async function processModel(
 
     console.error(`🔄 Processing: ${filename} (${content.length} characters)`);
 
-    const tokenCount = await countTokens(content, filename, modelId, verbose);
+    const tokenCount = await countTokens(content, filename, modelId, apiKey, verbose);
 
     if (tokenCount !== null) {
       const wordCount = countWords(content);
@@ -608,6 +642,11 @@ async function main() {
     return;
   }
 
+  if (args.includes('--languages')) {
+    showLanguagesList();
+    return;
+  }
+
   // Get API key (required for --models and token counting)
   const API_KEY = Deno.env.get("OPENROUTER_API_KEY");
   if (!API_KEY) {
@@ -631,8 +670,13 @@ async function main() {
     ? args[modelIndex + 1]
     : null;
 
-  // Get results directory (first non-option argument, excluding --model value)
-  const excludedArgs = new Set(['--model', specifiedModelId].filter(Boolean));
+  const languageIndex = args.indexOf('--language');
+  const languageFilter = languageIndex !== -1 && languageIndex + 1 < args.length
+    ? args[languageIndex + 1]
+    : undefined;
+
+  // Get results directory (first non-option argument, excluding --model and --language values)
+  const excludedArgs = new Set(['--model', '--language', specifiedModelId, languageFilter].filter(Boolean));
   const resultsDir = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
 
   if (!resultsDir) {
@@ -672,7 +716,7 @@ async function main() {
 
   // Process each model
   for (const modelId of modelIds) {
-    await processModel(modelId, resultsDir, API_KEY, verbose);
+    await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter);
   }
 
   console.error("");
@@ -680,7 +724,6 @@ async function main() {
   console.error("✅ All models processed!");
 }
 
-// Запуск скрипта
 if (import.meta.main) {
   await main();
 }
