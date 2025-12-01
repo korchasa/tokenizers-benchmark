@@ -225,7 +225,7 @@ USAGE:
 OPTIONS:
   --help, -h    Show this help
   --list        Show list of available files
-  --models      Show list of all available models (sorted by popularity)
+  --models      Show list of all available models
   --verbose, -v Output raw API requests and responses
 
 PARAMETERS:
@@ -430,37 +430,8 @@ async function getAllModels(apiKey: string, verbose: boolean = false): Promise<M
       console.error(`🔍 [VERBOSE] Full response:`, JSON.stringify(modelsArray, null, 2));
     }
 
-    // Sort by popularity (if available) or by provider/model ID
-    modelsArray.sort((a, b) => {
-      // First, if popularity field is available, sort by it (descending)
-      if (a.popularity !== undefined && b.popularity !== undefined) {
-        if (a.popularity !== b.popularity) {
-          return b.popularity - a.popularity; // Descending order
-        }
-      }
-
-      // Then sort by provider (popular providers first)
-      const providerOrder: Record<string, number> = {
-        'openai': 1,
-        'anthropic': 2,
-        'google': 3,
-        'meta': 4,
-        'mistralai': 5,
-        'deepseek': 6,
-      };
-
-      const aProvider = a.owned_by?.toLowerCase() || '';
-      const bProvider = b.owned_by?.toLowerCase() || '';
-      const aOrder = providerOrder[aProvider] || 999;
-      const bOrder = providerOrder[bProvider] || 999;
-
-      if (aOrder !== bOrder) {
-        return aOrder - bOrder;
-      }
-
-      // Finally sort by model ID alphabetically
-      return a.id.localeCompare(b.id);
-    });
+    // Sort by id
+    modelsArray.sort((a, b) => a.id.localeCompare(b.id));
 
     return modelsArray;
   } catch (error) {
@@ -491,11 +462,10 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
     }
 
     // Output to stdout (plain text, one model per line)
-    // Format: id: (architecture.modality) name
+    // Format: id modularity
     models.forEach(model => {
       const modality = model.architecture?.modality || '';
-      const name = model.name || '';
-      const output = `${model.id}: (${modality}) ${name}`;
+      const output = `${modality} - ${model.id}`;
       console.log(output);
     });
   } catch (error) {
