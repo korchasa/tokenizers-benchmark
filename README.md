@@ -28,7 +28,7 @@ The script requires a results directory path where CSV and JSON files will be sa
 ```bash
 ./run <results_dir>
 # or
-deno run --allow-read --allow-net --allow-env bench.ts <results_dir>
+./bench.ts <results_dir>
 ```
 
 ### Specify a model
@@ -38,7 +38,7 @@ To use a specific model, use the `--model` option:
 ```bash
 ./run ./results --model anthropic/claude-3-haiku:beta
 # or
-deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta
+./bench.ts ./results --model anthropic/claude-3-haiku:beta
 ```
 
 ### Use models from models.txt
@@ -58,28 +58,28 @@ If no model is specified, the script reads model IDs from `models.txt` file (one
 ```bash
 ./run --help
 # or
-deno run --allow-read --allow-net --allow-env bench.ts --help
+./bench.ts --help
 ```
 
 ### View list of available files
 ```bash
 ./run --list
 # or
-deno run --allow-read --allow-env bench.ts --list
+./bench.ts --list
 ```
 
 ### View list of available models
 ```bash
 ./run --models
 # or
-deno run --allow-read --allow-net --allow-env bench.ts --models
+./bench.ts --models
 ```
 
 ### Detailed output with raw API requests and responses
 ```bash
 ./run ./results --model anthropic/claude-3-haiku:beta --verbose
 # or
-deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
+./bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
 ```
 
 ## Output Data

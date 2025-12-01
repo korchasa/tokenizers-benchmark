@@ -1,0 +1,58 @@
+{
+  "id": "qwen/qwen3-vl-8b-instruct",
+  "canonical_slug": "qwen/qwen3-vl-8b-instruct",
+  "hugging_face_id": "Qwen/Qwen3-VL-8B-Instruct",
+  "name": "Qwen: Qwen3 VL 8B Instruct",
+  "created": 1760463308,
+  "description": "Qwen3-VL-8B-Instruct is a multimodal vision-language model from the Qwen3-VL series, built for high-fidelity understanding and reasoning across text, images, and video. It features improved multimodal fusion with Interleaved-MRoPE for long-horizon temporal reasoning, DeepStack for fine-grained visual-text alignment, and text-timestamp alignment for precise event localization.\n\nThe model supports a native 256K-token context window, extensible to 1M tokens, and handles both static and dynamic media inputs for tasks like document parsing, visual question answering, spatial reasoning, and GUI control. It achieves text understanding comparable to leading LLMs while expanding OCR coverage to 32 languages and enhancing robustness under varied visual conditions.",
+  "context_length": 131072,
+  "architecture": {
+    "modality": "text+image->text",
+    "input_modalities": [
+      "image",
+      "text"
+    ],
+    "output_modalities": [
+      "text"
+    ],
+    "tokenizer": "Qwen3",
+    "instruct_type": null
+  },
+  "pricing": {
+    "prompt": "0.000000064",
+    "completion": "0.0000004",
+    "request": "0",
+    "image": "0",
+    "web_search": "0",
+    "internal_reasoning": "0",
+    "input_cache_read": "0"
+  },
+  "top_provider": {
+    "context_length": 131072,
+    "max_completion_tokens": 32768,
+    "is_moderated": false
+  },
+  "per_request_limits": null,
+  "supported_parameters": [
+    "frequency_penalty",
+    "logit_bias",
+    "max_tokens",
+    "min_p",
+    "presence_penalty",
+    "repetition_penalty",
+    "response_format",
+    "seed",
+    "stop",
+    "structured_outputs",
+    "temperature",
+    "tool_choice",
+    "tools",
+    "top_k",
+    "top_p"
+  ],
+  "default_parameters": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "frequency_penalty": null
+  }
+}

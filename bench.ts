@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-net --allow-env
+#!/usr/bin/env -S deno run --allow-write --allow-read --allow-net --allow-env
 
 /**
  * Script for counting tokens in UDHR texts via OpenRouter API
@@ -246,7 +246,7 @@ function showHelp() {
 🚀 UDHR Token Counter - token counting via OpenRouter API
 
 USAGE:
-  deno run --allow-read --allow-net --allow-env bench.ts [options] <results_dir> [--model <model_id>]
+  ./bench.ts [options] <results_dir> [--model <model_id>]
 
 OPTIONS:
   --help, -h       Show this help
@@ -259,11 +259,11 @@ PARAMETERS:
   results_dir      Path to directory where results will be saved
 
 EXAMPLES:
-  deno run --allow-read --allow-net --allow-env bench.ts ./results
-  deno run --allow-read --allow-net --allow-env bench.ts ./results --model anthropic/claude-3-haiku:beta
-  deno run --allow-read --allow-net --allow-env bench.ts ./results --verbose
-  deno run --allow-read --allow-net --allow-env bench.ts --list
-  deno run --allow-read --allow-net --allow-env bench.ts --models
+  ./bench.ts ./results
+  ./bench.ts ./results --model anthropic/claude-3-haiku:beta
+  ./bench.ts ./results --verbose
+  ./bench.ts --list
+  ./bench.ts --models
 
 ENVIRONMENT VARIABLES:
   OPENROUTER_API_KEY    OpenRouter API key (required)
@@ -613,7 +613,7 @@ async function main() {
   if (!API_KEY) {
     console.error("❌ OPENROUTER_API_KEY not found in environment variables");
     console.error("Set the variable: export OPENROUTER_API_KEY=your_key_here");
-    console.error("Run 'deno run --allow-read --allow-net --allow-env bench.ts --help' for help");
+    console.error("Run './bench.ts --help' for help");
     Deno.exit(1);
   }
 
