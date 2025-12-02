@@ -26,5 +26,33 @@
       "totalTokens": 3752578,
       "totalCost": 0.538715188
     }
+  },
+  {
+    "filename": "2025-12-02_12-11-31-985_53langs_1models.json",
+    "timestamp": "2025-12-02_12-11-31-985",
+    "summary": {
+      "totalModels": 1,
+      "processedModels": 1,
+      "modelsWithErrors": 0,
+      "totalFiles": 53,
+      "totalSuccessfulFiles": 53,
+      "totalErrors": 0,
+      "totalTokens": 238611,
+      "totalCost": 0.02184379
+    }
+  },
+  {
+    "filename": "2025-12-02_12-16-18-293_53langs_1models.json",
+    "timestamp": "2025-12-02_12-16-18-293",
+    "summary": {
+      "totalModels": 1,
+      "processedModels": 1,
+      "modelsWithErrors": 0,
+      "totalFiles": 53,
+      "totalSuccessfulFiles": 53,
+      "totalErrors": 0,
+      "totalTokens": 260996,
+      "totalCost": 0.015016400000000004
+    }
   }
 ]

@@ -124,110 +124,134 @@ async function countTokens(text: string, filename: string, modelId: string, apiK
 
   const requestPayload = JSON.stringify(requestBody, null, 2);
 
-  try {
+  // Retry configuration
+  const maxRetries = 3;
+  let retryDelay = 1000; // Start with 1 second
 
-    if (verbose) {
-      console.error(`🔍 [VERBOSE] Request to OpenRouter API for ${filename}:`);
-      console.error(`🔍 [VERBOSE] URL: ${OPENROUTER_API_URL}`);
-      console.error(`🔍 [VERBOSE] Headers:`);
-      console.error(`🔍 [VERBOSE]   Authorization: Bearer ${apiKey.substring(0, 10)}...`);
-      console.error(`🔍 [VERBOSE]   Content-Type: application/json`);
-      console.error(`🔍 [VERBOSE]   HTTP-Referer: https://github.com/your-repo`);
-      console.error(`🔍 [VERBOSE]   X-Title: UDHR Token Counter`);
-      console.error(`🔍 [VERBOSE] Body:`);
-      console.error(requestPayload);
-      console.error(`🔍 [VERBOSE] ---`);
-    }
-
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/your-repo", // Replace with your repository
-        "X-Title": "UDHR Token Counter"
-      },
-      body: requestPayload
-    });
-
-    if (verbose) {
-      console.error(`🔍 [VERBOSE] Response from OpenRouter API:`);
-      console.error(`🔍 [VERBOSE] Status: ${response.status} ${response.statusText}`);
-      console.error(`🔍 [VERBOSE] Headers:`);
-      for (const [key, value] of response.headers.entries()) {
-        console.error(`🔍 [VERBOSE]   ${key}: ${value}`);
-      }
-    }
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      // Always output raw request and response on error
-      console.error(`❌ API error for ${filename}:`);
-      console.error(`Request URL: ${OPENROUTER_API_URL}`);
-      console.error(`Request Body:`);
-      console.error(requestPayload);
-      console.error(`Response Status: ${response.status} ${response.statusText}`);
-      console.error(`Response Body:`);
-      console.error(errorData);
-      let parsedError;
-      try {
-        parsedError = JSON.parse(errorData);
-      } catch {
-        parsedError = { error: { message: errorData } };
-      }
-      const errorMessage = parsedError.error?.message || response.statusText;
-      console.error(`Error message: ${errorMessage}`);
-      return null;
-    }
-
-    const responseText = await response.text();
-    if (verbose) {
-      console.error(`🔍 [VERBOSE] Response Body:`);
-      console.error(responseText.trim());
-      console.error(`🔍 [VERBOSE] ---`);
-    }
-
-    let data: OpenRouterResponse;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      // Always output raw request and response on parse error
-      console.error(`❌ JSON parse error for ${filename}:`);
-      console.error(`Request URL: ${OPENROUTER_API_URL}`);
-      console.error(`Request Body:`);
-      console.error(requestPayload);
-      console.error(`Response Status: ${response.status} ${response.statusText}`);
-      console.error(`Response Body:`);
-      console.error(responseText);
-      console.error(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-      return null;
-    }
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Request to OpenRouter API for ${filename} (Attempt ${attempt + 1}/${maxRetries + 1}):`);
+        console.error(`🔍 [VERBOSE] URL: ${OPENROUTER_API_URL}`);
+        console.error(`🔍 [VERBOSE] Headers:`);
+        console.error(`🔍 [VERBOSE]   Authorization: Bearer ${apiKey.substring(0, 10)}...`);
+        console.error(`🔍 [VERBOSE]   Content-Type: application/json`);
+        console.error(`🔍 [VERBOSE]   HTTP-Referer: https://github.com/your-repo`);
+        console.error(`🔍 [VERBOSE]   X-Title: UDHR Token Counter`);
+        console.error(`🔍 [VERBOSE] Body:`);
+        console.error(requestPayload);
+        console.error(`🔍 [VERBOSE] ---`);
+      }
 
-    if (data.usage?.prompt_tokens) {
-      return {
-        tokens: data.usage.prompt_tokens,
-        estimatedCost: data.usage.cost || data.usage.estimated_cost || 0
-      };
-    } else {
-      // Always output raw request and response when no token usage data
-      console.error(`❌ No token usage data for ${filename}:`);
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://github.com/your-repo", // Replace with your repository
+          "X-Title": "UDHR Token Counter"
+        },
+        body: requestPayload
+      });
+
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Response from OpenRouter API:`);
+        console.error(`🔍 [VERBOSE] Status: ${response.status} ${response.statusText}`);
+        console.error(`🔍 [VERBOSE] Headers:`);
+        for (const [key, value] of response.headers.entries()) {
+          console.error(`🔍 [VERBOSE]   ${key}: ${value}`);
+        }
+      }
+
+      if (!response.ok) {
+        // Retry on 429 (Too Many Requests) and 5xx (Server Errors)
+        if (attempt < maxRetries && (response.status === 429 || response.status >= 500)) {
+             const errorText = await response.text();
+             console.error(`⚠️ API error for ${filename} (Attempt ${attempt + 1}): ${response.status} ${response.statusText}`);
+             console.error(`⏳ Retrying in ${retryDelay}ms...`);
+             await new Promise(resolve => setTimeout(resolve, retryDelay));
+             retryDelay *= 2;
+             continue;
+        }
+
+        const errorData = await response.text();
+        // Always output raw request and response on error
+        console.error(`❌ API error for ${filename}:`);
+        console.error(`Request URL: ${OPENROUTER_API_URL}`);
+        console.error(`Request Body:`);
+        console.error(requestPayload);
+        console.error(`Response Status: ${response.status} ${response.statusText}`);
+        console.error(`Response Body:`);
+        console.error(errorData);
+        let parsedError;
+        try {
+          parsedError = JSON.parse(errorData);
+        } catch {
+          parsedError = { error: { message: errorData } };
+        }
+        const errorMessage = parsedError.error?.message || response.statusText;
+        console.error(`Error message: ${errorMessage}`);
+        return null;
+      }
+
+      const responseText = await response.text();
+      if (verbose) {
+        console.error(`🔍 [VERBOSE] Response Body:`);
+        console.error(responseText.trim());
+        console.error(`🔍 [VERBOSE] ---`);
+      }
+
+      let data: OpenRouterResponse;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        // Always output raw request and response on parse error
+        console.error(`❌ JSON parse error for ${filename}:`);
+        console.error(`Request URL: ${OPENROUTER_API_URL}`);
+        console.error(`Request Body:`);
+        console.error(requestPayload);
+        console.error(`Response Status: ${response.status} ${response.statusText}`);
+        console.error(`Response Body:`);
+        console.error(responseText);
+        console.error(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        return null;
+      }
+
+      if (data.usage?.prompt_tokens) {
+        return {
+          tokens: data.usage.prompt_tokens,
+          estimatedCost: data.usage.cost || data.usage.estimated_cost || 0
+        };
+      } else {
+        // Always output raw request and response when no token usage data
+        console.error(`❌ No token usage data for ${filename}:`);
+        console.error(`Request URL: ${OPENROUTER_API_URL}`);
+        console.error(`Request Body:`);
+        console.error(requestPayload);
+        console.error(`Response Status: ${response.status} ${response.statusText}`);
+        console.error(`Response Body:`);
+        console.error(responseText);
+        return null;
+      }
+    } catch (error) {
+      // Always output raw request on network error
+      if (attempt < maxRetries) {
+         console.error(`❌ Network error for ${filename} (Attempt ${attempt + 1}): ${error instanceof Error ? error.message : String(error)}`);
+         console.error(`⏳ Retrying in ${retryDelay}ms...`);
+         await new Promise(resolve => setTimeout(resolve, retryDelay));
+         retryDelay *= 2;
+         continue;
+      }
+
+      console.error(`❌ Network error for ${filename}:`);
       console.error(`Request URL: ${OPENROUTER_API_URL}`);
       console.error(`Request Body:`);
       console.error(requestPayload);
-      console.error(`Response Status: ${response.status} ${response.statusText}`);
-      console.error(`Response Body:`);
-      console.error(responseText);
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
-  } catch (error) {
-    // Always output raw request on network error
-    console.error(`❌ Network error for ${filename}:`);
-    console.error(`Request URL: ${OPENROUTER_API_URL}`);
-    console.error(`Request Body:`);
-    console.error(requestPayload);
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    return null;
   }
+  return null;
 }
 
 /**
