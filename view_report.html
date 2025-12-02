@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokenizer Benchmark Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        :root {
+            --background: rgb(245, 245, 245);
+            --foreground: rgb(10, 10, 10);
+            --card: rgb(255, 255, 255);
+            --card-foreground: rgb(10, 10, 10);
+            --popover: rgb(255, 255, 255);
+            --popover-foreground: rgb(10, 10, 10);
+            --primary: rgb(115, 115, 115);
+            --primary-foreground: rgb(250, 250, 250);
+            --secondary: rgb(245, 245, 245);
+            --secondary-foreground: rgb(23, 23, 23);
+            --muted: rgb(245, 245, 245);
+            --muted-foreground: rgb(113, 113, 113);
+            --accent: rgb(245, 245, 245);
+            --accent-foreground: rgb(23, 23, 23);
+            --destructive: rgb(231, 0, 11);
+            --destructive-foreground: rgb(245, 245, 250);
+            --border: rgb(229, 229, 229);
+            --input: rgb(229, 229, 229);
+            --ring: rgb(161, 161, 161);
+            --chart-1: rgb(115, 115, 115);
+            --radius: 0rem;
+            --spacing: 0.25rem;
+            --shadow-x: 0px;
+            --shadow-y: 0px;
+            --font-sans: monospace;
+            --font-serif: monospace;
+            --font-mono: monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--background);
+            color: var(--foreground);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .upload-section {
+            background: var(--card);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: 0px var(--shadow-y) 0px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px dashed var(--border);
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary);
+        }
+
+        .dashboard {
+            display: none;
+            gap: 20px;
+            flex-direction: column;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-x) var(--shadow-y) 0px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            color: var(--card-foreground);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--muted);
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--foreground);
+        }
+
+        th:hover {
+            background-color: var(--accent);
+        }
+
+        .heatmap-cell {
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .chart-container-large {
+            position: relative;
+            height: auto;
+            min-height: 800px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container-large {
+                min-height: 1000px;
+            }
+        }
+
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        select {
+            padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--input);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+            border-radius: var(--radius);
+            font-family: var(--font-sans);
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Utility for efficiency coloring */
+        .eff-high {
+            background-color: rgba(115, 115, 115, 0.2);
+        }
+
+        .eff-med {
+            background-color: rgba(115, 115, 115, 0.15);
+        }
+
+        .eff-low {
+            background-color: rgba(231, 0, 11, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: var(--radius);
+            font-size: 0.8em;
+            background: var(--muted);
+            color: var(--muted-foreground);
+        }
+
+        .text-muted {
+            color: var(--muted-foreground);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Tokenizer Benchmark Explorer</h1>
+                <p class="text-muted">Visualize tokenization efficiency across languages and models</p>
+            </div>
+            <div>
+                <button onclick="document.getElementById('fileInput').click()">Load JSON Report</button>
+            </div>
+        </header>
+
+        <div class="upload-section" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" accept=".json">
+            <p><strong>Click to upload</strong> or drag and drop your <code>udhr-top20-*.json</code> file here</p>
+        </div>
+
+        <div id="dashboard" class="dashboard">
+
+
+
+            <!-- Charts Row 1 -->
+            <div class="metrics-grid">
+                <div class="card">
+                    <h2>Language Tax (vs English)</h2>
+                    <p style="font-size: 0.85em; color: #666;">Average token tax across all models. How many more tokens
+                        needed compared to English? (1.0 = Same as English)</p>
+                    <div class="chart-container-large">
+                        <canvas id="taxChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Efficiency by Language (Chars/Token)</h2>
+                    <p style="font-size: 0.85em; color: #666;">Higher is better. Shows how much information fits in one
+                        token.</p>
+                    <div class="controls">
+                        <select id="effLanguageSelect"></select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="effChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Efficiency Matrix (Chars per Token)</h2>
+                    <div class="controls">
+                        <label><input type="checkbox" id="colorScale" checked> Color Scale</label>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="mainTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Summary Metrics -->
+            <div class="metrics-grid">
+                <div class="card">
+                    <h2>Overview</h2>
+                    <div id="summaryStats"></div>
+                </div>
+                <div class="card">
+                    <h2>Top Efficient Models (Avg Chars/Token)</h2>
+                    <div id="topModelsList"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Register Chart.js plugins
+        Chart.register(ChartDataLabels);
+
+        let rawData = null;
+        let charts = {};
+
+        // --- File Handling ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--primary)'; });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border)';
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    rawData = JSON.parse(e.target.result);
+                    initDashboard(rawData);
+                } catch (err) {
+                    alert('Error parsing JSON: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Processing Logic ---
+
+        function cleanLangName(filename) {
+            return filename.replace('.txt', '').charAt(0).toUpperCase() + filename.replace('.txt', '').slice(1);
+        }
+
+        function processData(data) {
+            // Extract unique languages from all models
+            const allLanguages = new Set();
+            data.models.forEach(m => {
+                m.results.forEach(r => {
+                    allLanguages.add(cleanLangName(r.filename));
+                });
+            });
+            const languages = Array.from(allLanguages).sort();
+
+            // Structure: { modelId, modelName, stats: { lang: { tokens, chars, cpt, tax } } }
+            const processed = data.models.map(m => {
+                const modelStats = {};
+                let totalChars = 0;
+                let totalTokens = 0;
+
+                // Find English stats for tax calc
+                const engResult = m.results.find(r => r.filename.includes('english'));
+                const engCpt = engResult ? engResult.characters / engResult.tokens : 0;
+
+                m.results.forEach(r => {
+                    const lang = cleanLangName(r.filename);
+                    const cpt = r.tokens > 0 ? r.characters / r.tokens : 0;
+                    const tax = engCpt > 0 ? (1 / cpt) / (1 / engCpt) : 0; // Ratio of tokens needed vs English
+
+                    modelStats[lang] = {
+                        tokens: r.tokens,
+                        chars: r.characters,
+                        cpt: cpt, // Characters Per Token (Efficiency)
+                        tax: (r.tokens / r.characters) / (engResult.tokens / engResult.characters) // Token Tax
+                    };
+
+                    totalChars += r.characters;
+                    totalTokens += r.tokens;
+                });
+
+                return {
+                    id: m.modelId,
+                    name: m.modelInfo?.name || m.modelId,
+                    provider: m.modelInfo?.organization || 'Unknown',
+                    avgCpt: totalChars / totalTokens,
+                    stats: modelStats
+                };
+            }).sort((a, b) => b.avgCpt - a.avgCpt); // Sort by efficiency descending
+
+            return { languages, models: processed };
+        }
+
+        // --- UI Rendering ---
+
+        function initDashboard(data) {
+            const { languages, models } = processData(data);
+
+            document.querySelector('.upload-section').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+
+            renderSummary(models, languages);
+            renderMainTable(models, languages);
+            initCharts(models, languages);
+        }
+
+        function renderSummary(models, languages) {
+            document.getElementById('summaryStats').innerHTML = `
+            <p><strong>Models Analyzed:</strong> ${models.length}</p>
+            <p><strong>Languages:</strong> ${languages.length}</p>
+            <p><strong>Dataset:</strong> UDHR Parallel Corpus</p>
+        `;
+
+            const top3 = models.slice(0, 5);
+            document.getElementById('topModelsList').innerHTML = `
+            <ol style="padding-left: 20px; margin: 0;">
+                ${top3.map(m => `<li><strong>${m.name}</strong> <span class="text-muted">(${m.avgCpt.toFixed(2)} chars/token)</span></li>`).join('')}
+            </ol>
+        `;
+        }
+
+        function renderMainTable(models, languages) {
+            const thead = document.getElementById('mainTable').querySelector('thead');
+            const tbody = document.getElementById('mainTable').querySelector('tbody');
+
+            // Headers
+            let headerHTML = `<tr>
+            <th style="width: 200px; left: 0; z-index: 2;">Model</th>
+            <th style="width: 80px;">Avg CPT</th>
+            ${languages.map(l => `<th>${l}</th>`).join('')}
+        </tr>`;
+            thead.innerHTML = headerHTML;
+
+            // Rows
+            tbody.innerHTML = models.map(m => {
+                const cells = languages.map(lang => {
+                    const stat = m.stats[lang];
+                    const val = stat ? stat.cpt.toFixed(2) : '-';
+                    // Color scale logic
+                    let bg = '';
+                    if (document.getElementById('colorScale').checked && stat) {
+                        // Scale: 1.5 (destructive) to 4.5 (primary)
+                        const score = Math.max(0, Math.min(1, (stat.cpt - 1.5) / 3.0));
+                        const r = Math.round(231 + (115 - 231) * score);
+                        const g = Math.round(0 + (115 - 0) * score);
+                        const b = Math.round(11 + (115 - 11) * score);
+                        bg = `background-color: rgba(${r}, ${g}, ${b}, 0.2);`;
+                    }
+                    return `<td class="heatmap-cell" style="${bg}" title="${lang}: ${val} chars/token">${val}</td>`;
+                }).join('');
+
+                return `<tr>
+                <td style="position: sticky; left: 0; background: rgb(255, 255, 255); border-right: 1px solid rgb(229, 229, 229); font-weight:500;">${m.name}</td>
+                <td><strong>${m.avgCpt.toFixed(2)}</strong></td>
+                ${cells}
+            </tr>`;
+            }).join('');
+        }
+
+        // --- Charting ---
+
+        function initCharts(models, languages) {
+            // Fill Selectors
+            const langSelect = document.getElementById('effLanguageSelect');
+            langSelect.innerHTML = languages.map(l => `<option value="${l}">${l}</option>`).join('');
+            langSelect.value = 'Russian'; // Default
+
+            // 1. Language Tax Chart (Average across all models)
+            const ctxTax = document.getElementById('taxChart').getContext('2d');
+            charts.tax = new Chart(ctxTax, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            display: true,
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: (value) => value.toFixed(2),
+                            font: { size: 10 },
+                            color: 'rgb(10, 10, 10)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Average Multiplier (1.0 = Same as English)' }
+                        },
+                        y: {
+                            ticks: {
+                                font: { size: 11 },
+                                autoSkip: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Efficiency Chart (Comparison across models for one language)
+            const ctxEff = document.getElementById('effChart').getContext('2d');
+            charts.eff = new Chart(ctxEff, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            display: true,
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: (value) => value.toFixed(2),
+                            font: { size: 10 },
+                            color: 'rgb(10, 10, 10)'
+                        }
+                    },
+                    scales: { x: { title: { display: true, text: 'Characters per Token (Higher is Better)' } } }
+                }
+            });
+
+            // Listeners
+            langSelect.addEventListener('change', () => updateEffChart(models));
+            document.getElementById('colorScale').addEventListener('change', () => renderMainTable(models, languages));
+
+            // Initial Render
+            updateTaxChart(models, languages);
+            updateEffChart(models);
+        }
+
+        function updateTaxChart(models, languages) {
+            // Calculate average tax across all models for each language
+            const langData = languages.map(lang => {
+                const validTaxes = models
+                    .map(m => m.stats[lang]?.tax)
+                    .filter(t => t && t > 0);
+
+                const avgTax = validTaxes.length > 0
+                    ? validTaxes.reduce((sum, t) => sum + t, 0) / validTaxes.length
+                    : 0;
+
+                return { lang, tax: avgTax };
+            });
+
+            // Sort from highest to lowest
+            langData.sort((a, b) => b.tax - a.tax);
+
+            const sortedLanguages = langData.map(item => item.lang);
+            const sortedData = langData.map(item => item.tax);
+            const colors = sortedData.map(() => 'rgb(115, 115, 115)');
+
+            charts.tax.data = {
+                labels: sortedLanguages,
+                datasets: [{
+                    label: 'Average Language Tax (x times English tokens)',
+                    data: sortedData,
+                    backgroundColor: colors,
+                    borderWidth: 1,
+                    barThickness: 12,
+                    maxBarThickness: 15
+                }]
+            };
+            charts.tax.update();
+        }
+
+        function updateEffChart(models) {
+            const lang = document.getElementById('effLanguageSelect').value;
+
+            // Sort models by efficiency in this specific language
+            const sorted = [...models].sort((a, b) => (b.stats[lang]?.cpt || 0) - (a.stats[lang]?.cpt || 0)).slice(0, 20); // Top 20
+
+            charts.eff.data = {
+                labels: sorted.map(m => m.name),
+                datasets: [{
+                    label: `${lang} Efficiency (Chars/Token)`,
+                    data: sorted.map(m => m.stats[lang]?.cpt || 0),
+                    backgroundColor: 'rgb(115, 115, 115)'
+                }]
+            };
+            charts.eff.update();
+        }
+
+        // --- Autoload Logic ---
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('./report.json')
+                .then(response => {
+                    if (!response.ok) throw new Error("Status: " + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Autoloaded report.json successfully');
+                    initDashboard(data);
+                })
+                .catch(err => {
+                    console.warn('Could not autoload report.json:', err);
+                    // Display a subtle message in the upload zone
+                    const dropZone = document.getElementById('dropZone');
+                    if (dropZone) {
+                        const msg = document.createElement('p');
+                        msg.style.color = 'rgb(113, 113, 113)';
+                        msg.style.fontSize = '0.85em';
+                        msg.style.marginTop = '10px';
+                        msg.textContent = 'Could not auto-load ./report.json (likely due to browser security restrictions). Please drag & drop the file.';
+                        dropZone.appendChild(msg);
+                    }
+                });
+        });
+
+    </script>
+
+</body>
+
+</html>

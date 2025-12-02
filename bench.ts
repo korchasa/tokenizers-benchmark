@@ -69,15 +69,38 @@ interface TokenCountResult {
   estimatedCost: number;
 }
 
-interface ModelProcessingStats {
+interface FileResult {
+  filename: string;
+  characters: number;
+  words: number;
+  tokens: number;
+}
+
+interface ModelReport {
   modelId: string;
-  totalFiles: number;
-  successfulFiles: number;
-  errors: string[];
-  totalTokens: number;
-  totalEstimatedCost: number;
-  skipped: boolean;
-  hasErrors: boolean;
+  modelInfo: Model | null;
+  results: FileResult[];
+  stats: {
+    totalFiles: number;
+    successfulFiles: number;
+    totalTokens: number;
+    totalEstimatedCost: number;
+    errors: string[];
+  };
+}
+
+interface Report {
+  models: ModelReport[];
+  summary: {
+    totalModels: number;
+    processedModels: number;
+    modelsWithErrors: number;
+    totalFiles: number;
+    totalSuccessfulFiles: number;
+    totalErrors: number;
+    totalTokens: number;
+    totalCost: number;
+  };
 }
 
 /**
@@ -265,13 +288,6 @@ function readModelsFromFile(): string[] {
 }
 
 /**
- * Converts model ID to filename-safe string (replaces special characters with -)
- */
-function modelIdToFilename(modelId: string): string {
-  return modelId.replace(/[^a-zA-Z0-9._-]/g, '-');
-}
-
-/**
  * Gets model information by ID from the list of all models
  */
 async function getModelInfo(modelId: string, apiKey: string, verbose: boolean = false): Promise<Model | null> {
@@ -305,7 +321,7 @@ function showHelp() {
 🚀 Token Benchmarking - tokenizing benchmarking
 
 USAGE:
-  ./bench.ts [options] <results_dir> [--model <model_id>]
+  ./bench.ts [options] <report_file> [--model <model_id>]
 
 OPTIONS:
   --help, -h       Show this help
@@ -313,17 +329,16 @@ OPTIONS:
   --model <id>     Model ID to use (if not specified, reads from models.txt)
   --languages      Show list of available languages
   --language <lang> Filter files by language name (e.g., "russian", "english")
-  --override       Overwrite existing result files
   --verbose, -v    Output raw API requests and responses
 
 PARAMETERS:
-  results_dir      Path to directory where results will be saved
+  report_file      Full path to JSON report file (e.g., "./results/report.json")
 
 EXAMPLES:
-  ./bench.ts ./results
-  ./bench.ts ./results --model anthropic/claude-3-haiku:beta
-  ./bench.ts ./results --language russian
-  ./bench.ts ./results --verbose
+  ./bench.ts ./results/report.json
+  ./bench.ts ./results/report.json --model anthropic/claude-3-haiku:beta
+  ./bench.ts ./results/report.json --language russian
+  ./bench.ts ./results/report.json --verbose
   ./bench.ts --languages
   ./bench.ts --models
 
@@ -642,57 +657,16 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
 }
 
 /**
- * Processes files for a single model and saves results
+ * Processes files for a single model and returns results
  */
 async function processModel(
   modelId: string,
-  resultsDir: string,
   apiKey: string,
   verbose: boolean,
-  languageFilter?: string,
-  override: boolean = false
-): Promise<ModelProcessingStats> {
+  languageFilter?: string
+): Promise<ModelReport> {
   console.error("\n==================================================");
   console.error(`🔄 Processing model: ${modelId}`);
-
-  // Create filename for this model
-  const modelFilename = modelIdToFilename(modelId);
-  const csvPath = `${resultsDir}/${modelFilename}.csv`;
-  const jsonPath = `${resultsDir}/${modelFilename}.json`;
-
-  // Check if results already exist
-  if (!override) {
-    try {
-      const csvExists = await Deno.stat(csvPath).then(() => true).catch(() => false);
-      const jsonExists = await Deno.stat(jsonPath).then(() => true).catch(() => false);
-
-      if (csvExists || jsonExists) {
-        console.error(`⏭️  Skipping ${modelId} - results already exist`);
-        if (csvExists) {
-          console.error(`   CSV file exists: ${csvPath}`);
-        }
-        if (jsonExists) {
-          console.error(`   JSON file exists: ${jsonPath}`);
-        }
-        console.error(`   Use --override to force re-processing`);
-        return {
-          modelId,
-          totalFiles: 0,
-          successfulFiles: 0,
-          errors: [],
-          totalTokens: 0,
-          totalEstimatedCost: 0,
-          skipped: true,
-          hasErrors: false
-        };
-      }
-    } catch (error) {
-      // If stat fails for other reasons, continue processing
-      if (verbose) {
-        console.error(`🔍 [VERBOSE] Error checking file existence:`, error instanceof Error ? error.message : String(error));
-      }
-    }
-  }
 
   // Get model information
   const modelInfo = await getModelInfo(modelId, apiKey, verbose);
@@ -700,13 +674,15 @@ async function processModel(
     console.error(`❌ Model ${modelId} not found in API`);
     return {
       modelId,
-      totalFiles: 0,
-      successfulFiles: 0,
-      errors: [`Model ${modelId} not found in API`],
-      totalTokens: 0,
-      totalEstimatedCost: 0,
-      skipped: false,
-      hasErrors: true
+      modelInfo: null,
+      results: [],
+      stats: {
+        totalFiles: 0,
+        successfulFiles: 0,
+        totalTokens: 0,
+        totalEstimatedCost: 0,
+        errors: [`Model ${modelId} not found in API`]
+      }
     };
   }
 
@@ -717,9 +693,7 @@ async function processModel(
   }
   console.error(`📊 Files to process: ${files.length}`);
 
-  // Prepare CSV content
-  const csvLines: string[] = ["filename,characters,words,tokens,model_id"];
-
+  const results: FileResult[] = [];
   let totalFiles = 0;
   let successfulFiles = 0;
   let totalTokens = 0;
@@ -734,6 +708,7 @@ async function processModel(
       const errorMsg = `Failed to read file: ${filename}`;
       console.error(`⚠️  Skipping ${filename} - read error`);
       errors.push(errorMsg);
+      totalFiles++;
       continue;
     }
 
@@ -743,7 +718,12 @@ async function processModel(
 
     if (result !== null) {
       const wordCount = countWords(content);
-      csvLines.push(`${filename},${content.length},${wordCount},${result.tokens},${modelId}`);
+      results.push({
+        filename,
+        characters: content.length,
+        words: wordCount,
+        tokens: result.tokens
+      });
       console.error(`✅ ${filename}: ${wordCount} words, ${result.tokens} input tokens`);
       successfulFiles++;
       totalTokens += result.tokens;
@@ -760,61 +740,6 @@ async function processModel(
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  // Don't save files if there were errors
-  if (errors.length > 0) {
-    console.error(`❌ Errors occurred during processing. Files not saved.`);
-    return {
-      modelId,
-      totalFiles,
-      successfulFiles,
-      errors,
-      totalTokens,
-      totalEstimatedCost,
-      skipped: false,
-      hasErrors: true
-    };
-  }
-
-  // Save model info to JSON file
-  try {
-    await Deno.writeTextFile(jsonPath, JSON.stringify(modelInfo, null, 2));
-    console.error(`💾 Model info saved to: ${jsonPath}`);
-  } catch (error) {
-    const errorMsg = `Failed to save model info: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(`❌ Error saving model info:`, error instanceof Error ? error.message : String(error));
-    errors.push(errorMsg);
-    return {
-      modelId,
-      totalFiles,
-      successfulFiles,
-      errors,
-      totalTokens,
-      totalEstimatedCost,
-      skipped: false,
-      hasErrors: true
-    };
-  }
-
-  // Save CSV file
-  try {
-    await Deno.writeTextFile(csvPath, csvLines.join('\n') + '\n');
-    console.error(`💾 Results saved to: ${csvPath}`);
-  } catch (error) {
-    const errorMsg = `Failed to save CSV: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(`❌ Error saving CSV:`, error instanceof Error ? error.message : String(error));
-    errors.push(errorMsg);
-    return {
-      modelId,
-      totalFiles,
-      successfulFiles,
-      errors,
-      totalTokens,
-      totalEstimatedCost,
-      skipped: false,
-      hasErrors: true
-    };
-  }
-
   console.error("");
   console.error("📈 RESULTS:");
   console.error(`📁 Files processed: ${totalFiles}`);
@@ -827,13 +752,15 @@ async function processModel(
 
   return {
     modelId,
-    totalFiles,
-    successfulFiles,
-    errors,
-    totalTokens,
-    totalEstimatedCost,
-    skipped: false,
-    hasErrors: errors.length > 0
+    modelInfo,
+    results,
+    stats: {
+      totalFiles,
+      successfulFiles,
+      totalTokens,
+      totalEstimatedCost,
+      errors
+    }
   };
 }
 
@@ -887,29 +814,30 @@ async function main() {
     ? args[languageIndex + 1]
     : undefined;
 
-  const override = args.includes('--override');
-
-  // Get results directory (first non-option argument, excluding --model and --language values)
+  // Get report file path (first non-option argument, excluding --model and --language values)
   const excludedArgs = new Set(['--model', '--language', specifiedModelId, languageFilter].filter(Boolean));
-  const resultsDir = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
+  const reportFilePath = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
 
-  if (!resultsDir) {
-    console.error("❌ Results directory not specified");
+  if (!reportFilePath) {
+    console.error("❌ Report file path not specified");
     showHelp();
     Deno.exit(1);
   }
 
-  // Ensure results directory exists
+  // Ensure directory for report file exists
   try {
-    await Deno.mkdir(resultsDir, { recursive: true });
+    const reportDir = reportFilePath.substring(0, reportFilePath.lastIndexOf('/'));
+    if (reportDir) {
+      await Deno.mkdir(reportDir, { recursive: true });
+    }
   } catch (error) {
-    console.error(`❌ Error creating results directory:`, error instanceof Error ? error.message : String(error));
+    console.error(`❌ Error creating directory for report file:`, error instanceof Error ? error.message : String(error));
     Deno.exit(1);
   }
 
   console.error("🚀 Starting token benchmarking via OpenRouter API");
   console.error("==================================================");
-  console.error(`📁 Results directory: ${resultsDir}`);
+  console.error(`📄 Report file: ${reportFilePath}`);
 
   // Get list of models to process
   const modelIds: string[] = [];
@@ -928,30 +856,45 @@ async function main() {
     Deno.exit(1);
   }
 
-  // Process each model and collect statistics
-  const allStats: ModelProcessingStats[] = [];
+  // Process each model and collect results
+  const modelReports: ModelReport[] = [];
   for (const modelId of modelIds) {
-    const stats = await processModel(modelId, resultsDir, API_KEY, verbose, languageFilter, override);
-    allStats.push(stats);
+    const report = await processModel(modelId, API_KEY, verbose, languageFilter);
+    modelReports.push(report);
   }
 
-  // Calculate totals
-  const totalModels = allStats.length;
-  const processedModels = allStats.filter(s => !s.skipped).length;
-  const skippedModels = allStats.filter(s => s.skipped).length;
-  const modelsWithErrors = allStats.filter(s => s.hasErrors && !s.skipped).length;
-  const totalFiles = allStats.reduce((sum, s) => sum + s.totalFiles, 0);
-  const totalSuccessfulFiles = allStats.reduce((sum, s) => sum + s.successfulFiles, 0);
-  const totalErrors = allStats.reduce((sum, s) => sum + s.errors.length, 0);
-  const totalTokens = allStats.reduce((sum, s) => sum + s.totalTokens, 0);
-  const totalCost = allStats.reduce((sum, s) => sum + s.totalEstimatedCost, 0);
+  // Calculate summary statistics
+  const totalModels = modelReports.length;
+  const processedModels = modelReports.filter(r => r.modelInfo !== null).length;
+  const modelsWithErrors = modelReports.filter(r => r.stats.errors.length > 0).length;
+  const totalFiles = modelReports.reduce((sum, r) => sum + r.stats.totalFiles, 0);
+  const totalSuccessfulFiles = modelReports.reduce((sum, r) => sum + r.stats.successfulFiles, 0);
+  const totalErrors = modelReports.reduce((sum, r) => sum + r.stats.errors.length, 0);
+  const totalTokens = modelReports.reduce((sum, r) => sum + r.stats.totalTokens, 0);
+  const totalCost = modelReports.reduce((sum, r) => sum + r.stats.totalEstimatedCost, 0);
 
-  // Collect all errors
-  const allErrors: Array<{ modelId: string; errors: string[] }> = [];
-  for (const stats of allStats) {
-    if (stats.errors.length > 0) {
-      allErrors.push({ modelId: stats.modelId, errors: stats.errors });
+  // Create report
+  const report: Report = {
+    models: modelReports,
+    summary: {
+      totalModels,
+      processedModels,
+      modelsWithErrors,
+      totalFiles,
+      totalSuccessfulFiles,
+      totalErrors,
+      totalTokens,
+      totalCost
     }
+  };
+
+  // Save report to JSON file
+  try {
+    await Deno.writeTextFile(reportFilePath, JSON.stringify(report, null, 2));
+    console.error(`\n💾 Report saved to: ${reportFilePath}`);
+  } catch (error) {
+    console.error(`❌ Error saving report:`, error instanceof Error ? error.message : String(error));
+    Deno.exit(1);
   }
 
   // Print summary
@@ -960,9 +903,6 @@ async function main() {
   console.error("📊 SUMMARY");
   console.error("==================================================");
   console.error(`🤖 Models processed: ${processedModels} of ${totalModels}`);
-  if (skippedModels > 0) {
-    console.error(`⏭️  Models skipped: ${skippedModels}`);
-  }
   if (modelsWithErrors > 0) {
     console.error(`❌ Models with errors: ${modelsWithErrors}`);
   }
@@ -975,14 +915,15 @@ async function main() {
   console.error(`💰 Total cost: ${totalCost.toFixed(10)}`);
 
   // Print detailed errors
-  if (allErrors.length > 0) {
+  const modelsWithErrorDetails = modelReports.filter(r => r.stats.errors.length > 0);
+  if (modelsWithErrorDetails.length > 0) {
     console.error("");
     console.error("==================================================");
     console.error("⚠️  ERRORS DETAILS");
     console.error("==================================================");
-    for (const { modelId, errors } of allErrors) {
-      console.error(`\n❌ ${modelId} (${errors.length} error(s)):`);
-      for (const error of errors) {
+    for (const modelReport of modelsWithErrorDetails) {
+      console.error(`\n❌ ${modelReport.modelId} (${modelReport.stats.errors.length} error(s)):`);
+      for (const error of modelReport.stats.errors) {
         console.error(`   - ${error}`);
       }
     }
