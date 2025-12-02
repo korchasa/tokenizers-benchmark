@@ -483,8 +483,26 @@
                                     const intensity = Math.min(1, diff / minRatio);
                                     bgStyle = `background-color: rgba(200, 255, 200, ${intensity});`;
                                 } else {
-                                    const intensity = Math.min(1, diff / maxRatio);
-                                    bgStyle = `background-color: rgba(255, 200, 200, ${intensity});`;
+                                    // Positive diff (Red) - High inefficiency
+                                    // Use pure red base (255, 0, 0) instead of pastel (255, 200, 200)
+                                    // Scale:
+                                    // 0% -> 0 opacity
+                                    // 100% (1.0) -> 0.6 opacity (Significant red, critical threshold)
+                                    // Max% -> 1.0 opacity (Full red)
+
+                                    let intensity;
+                                    if (diff <= 1.0) {
+                                        // Scale 0..1.0 to 0..0.6
+                                        intensity = 0.6 * (diff / 1.0);
+                                    } else {
+                                        // Scale 1.0..maxRatio to 0.6..1.0
+                                        const range = Math.max(maxRatio - 1.0, 0.0001);
+                                        intensity = 0.6 + 0.4 * ((diff - 1.0) / range);
+                                    }
+                                    // Clamp
+                                    intensity = Math.max(0, Math.min(1, intensity));
+
+                                    bgStyle = `background-color: rgba(255, 0, 0, ${intensity});`;
                                 }
                             }
                         }
