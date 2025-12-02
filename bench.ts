@@ -321,7 +321,7 @@ function showHelp() {
 🚀 Token Benchmarking - tokenizing benchmarking
 
 USAGE:
-  ./bench.ts [options] <report_file> [--model <model_id>]
+  ./bench.ts [options] <output_dir> [--model <model_id>]
 
 OPTIONS:
   --help, -h       Show this help
@@ -332,12 +332,13 @@ OPTIONS:
   --verbose, -v    Output raw API requests and responses
 
 PARAMETERS:
-  report_file      Full path to JSON report file (e.g., "./results/report.json")
+  output_dir       Directory to save results.
+                   Saves to <timestamp>_<langs>_<models>.json and updates reports.json in that directory.
 
 EXAMPLES:
-  ./bench.ts ./results/report.json
-  ./bench.ts ./results/report.json --model anthropic/claude-3-haiku:beta
-  ./bench.ts ./results/report.json --language russian
+  ./bench.ts ./results/
+  ./bench.ts ./results/ --model anthropic/claude-3-haiku:beta
+  ./bench.ts ./results/ --language russian
   ./bench.ts ./results/report.json --verbose
   ./bench.ts --languages
   ./bench.ts --models
@@ -814,30 +815,36 @@ async function main() {
     ? args[languageIndex + 1]
     : undefined;
 
-  // Get report file path (first non-option argument, excluding --model and --language values)
+  // Get output path (first non-option argument, excluding --model and --language values)
   const excludedArgs = new Set(['--model', '--language', specifiedModelId, languageFilter].filter(Boolean));
-  const reportFilePath = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
+  const outputDir = args.find(arg => !arg.startsWith('--') && !excludedArgs.has(arg));
 
-  if (!reportFilePath) {
-    console.error("❌ Report file path not specified");
+  if (!outputDir) {
+    console.error("❌ Output directory path not specified");
     showHelp();
     Deno.exit(1);
   }
 
-  // Ensure directory for report file exists
+  // Check if output directory exists
   try {
-    const reportDir = reportFilePath.substring(0, reportFilePath.lastIndexOf('/'));
-    if (reportDir) {
-      await Deno.mkdir(reportDir, { recursive: true });
+    const fileInfo = await Deno.stat(outputDir);
+    if (!fileInfo.isDirectory) {
+      console.error(`❌ Error: '${outputDir}' is not a directory`);
+      Deno.exit(1);
     }
   } catch (error) {
-    console.error(`❌ Error creating directory for report file:`, error instanceof Error ? error.message : String(error));
+    if (error instanceof Deno.errors.NotFound) {
+      console.error(`❌ Output directory '${outputDir}' does not exist`);
+      console.error(`💡 Please create it first: mkdir -p ${outputDir}`);
+      Deno.exit(1);
+    }
+    console.error(`❌ Error checking directory:`, error instanceof Error ? error.message : String(error));
     Deno.exit(1);
   }
 
   console.error("🚀 Starting token benchmarking via OpenRouter API");
   console.error("==================================================");
-  console.error(`📄 Report file: ${reportFilePath}`);
+  console.error(`📄 Output directory: ${outputDir}`);
 
   // Get list of models to process
   const modelIds: string[] = [];
@@ -888,10 +895,42 @@ async function main() {
     }
   };
 
-  // Save report to JSON file
+  // Save report
   try {
-    await Deno.writeTextFile(reportFilePath, JSON.stringify(report, null, 2));
-    console.error(`\n💾 Report saved to: ${reportFilePath}`);
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').split('Z')[0];
+    const langCount = modelReports.length > 0 ? modelReports[0].stats.totalFiles : 0;
+
+    const filename = `${timestamp}_${langCount}langs_${totalModels}models.json`;
+    const fullPath = outputDir.endsWith('/') ? `${outputDir}${filename}` : `${outputDir}/${filename}`;
+
+    await Deno.writeTextFile(fullPath, JSON.stringify(report, null, 2));
+    console.error(`\n💾 Report saved to: ${fullPath}`);
+
+    // Update reports.json
+    const reportsFile = outputDir.endsWith('/') ? `${outputDir}reports.json` : `${outputDir}/reports.json`;
+    let reports: any[] = [];
+    try {
+      const existingContent = await Deno.readTextFile(reportsFile);
+      const parsed = JSON.parse(existingContent);
+      if (Array.isArray(parsed)) {
+        reports = parsed;
+      }
+    } catch {
+      // File doesn't exist or is invalid, start new
+    }
+
+    // Create summary entry for reports.json (only link and summary, no model details)
+    const reportIndexEntry = {
+      filename,
+      timestamp,
+      summary: report.summary
+    };
+
+    reports.push(reportIndexEntry);
+    await Deno.writeTextFile(reportsFile, JSON.stringify(reports, null, 2));
+    console.error(`➕ Added to: ${reportsFile}`);
+
   } catch (error) {
     console.error(`❌ Error saving report:`, error instanceof Error ? error.message : String(error));
     Deno.exit(1);

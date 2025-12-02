@@ -1,0 +1,771 @@
+{
+  "models": [
+    {
+      "modelId": "openai/gpt-4.1-nano",
+      "modelInfo": {
+        "id": "openai/gpt-4.1-nano",
+        "canonical_slug": "openai/gpt-4.1-nano-2025-04-14",
+        "hugging_face_id": "",
+        "name": "OpenAI: GPT-4.1 Nano",
+        "created": 1744651369,
+        "description": "For tasks that demand low latency, GPT‑4.1 nano is the fastest and cheapest model in the GPT-4.1 series. It delivers exceptional performance at a small size with its 1 million token context window, and scores 80.1% on MMLU, 50.3% on GPQA, and 9.8% on Aider polyglot coding – even higher than GPT‑4o mini. It’s ideal for tasks like classification or autocompletion.",
+        "context_length": 1047576,
+        "architecture": {
+          "modality": "text+image->text",
+          "input_modalities": [
+            "image",
+            "text",
+            "file"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "GPT",
+          "instruct_type": null
+        },
+        "pricing": {
+          "prompt": "0.0000001",
+          "completion": "0.0000004",
+          "request": "0",
+          "image": "0",
+          "web_search": "0.01",
+          "internal_reasoning": "0",
+          "input_cache_read": "0.000000025"
+        },
+        "top_provider": {
+          "context_length": 1047576,
+          "max_completion_tokens": 32768,
+          "is_moderated": true
+        },
+        "per_request_limits": null,
+        "supported_parameters": [
+          "max_tokens",
+          "response_format",
+          "seed",
+          "structured_outputs",
+          "tool_choice",
+          "tools"
+        ],
+        "default_parameters": {}
+      },
+      "results": [
+        {
+          "filename": "achinese.txt",
+          "characters": 12827,
+          "words": 1935,
+          "tokens": 4238
+        },
+        {
+          "filename": "afrikaans.txt",
+          "characters": 10336,
+          "words": 1685,
+          "tokens": 2755
+        },
+        {
+          "filename": "arabic-egyptian.txt",
+          "characters": 7646,
+          "words": 1349,
+          "tokens": 2416
+        },
+        {
+          "filename": "baluchi.txt",
+          "characters": 13542,
+          "words": 1816,
+          "tokens": 4039
+        },
+        {
+          "filename": "braj.txt",
+          "characters": 11279,
+          "words": 1796,
+          "tokens": 2397
+        },
+        {
+          "filename": "buginese.txt",
+          "characters": 13324,
+          "words": 1829,
+          "tokens": 4243
+        },
+        {
+          "filename": "bulgarian.txt",
+          "characters": 11373,
+          "words": 1766,
+          "tokens": 3467
+        },
+        {
+          "filename": "catalan.txt",
+          "characters": 11067,
+          "words": 1843,
+          "tokens": 2937
+        },
+        {
+          "filename": "chinese.txt",
+          "characters": 3006,
+          "words": 188,
+          "tokens": 2377
+        },
+        {
+          "filename": "czech.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3403
+        },
+        {
+          "filename": "dansk.txt",
+          "characters": 12013,
+          "words": 1795,
+          "tokens": 3246
+        },
+        {
+          "filename": "dutch.txt",
+          "characters": 12773,
+          "words": 1966,
+          "tokens": 2796
+        },
+        {
+          "filename": "english.txt",
+          "characters": 10638,
+          "words": 1747,
+          "tokens": 2025
+        },
+        {
+          "filename": "esperanto.txt",
+          "characters": 10013,
+          "words": 1616,
+          "tokens": 3177
+        },
+        {
+          "filename": "filipino.txt",
+          "characters": 13391,
+          "words": 2116,
+          "tokens": 3760
+        },
+        {
+          "filename": "finnish.txt",
+          "characters": 12225,
+          "words": 1402,
+          "tokens": 3636
+        },
+        {
+          "filename": "french.txt",
+          "characters": 11896,
+          "words": 1943,
+          "tokens": 2643
+        },
+        {
+          "filename": "frisian.txt",
+          "characters": 12126,
+          "words": 2019,
+          "tokens": 3762
+        },
+        {
+          "filename": "german.txt",
+          "characters": 11930,
+          "words": 1642,
+          "tokens": 2565
+        },
+        {
+          "filename": "greek.txt",
+          "characters": 12426,
+          "words": 1910,
+          "tokens": 4424
+        },
+        {
+          "filename": "hebrew.txt",
+          "characters": 7258,
+          "words": 1278,
+          "tokens": 2867
+        },
+        {
+          "filename": "hindi.txt",
+          "characters": 11464,
+          "words": 2145,
+          "tokens": 3372
+        },
+        {
+          "filename": "hungarian.txt",
+          "characters": 12030,
+          "words": 1539,
+          "tokens": 4030
+        },
+        {
+          "filename": "indonesian.txt",
+          "characters": 12504,
+          "words": 1725,
+          "tokens": 2965
+        },
+        {
+          "filename": "italian.txt",
+          "characters": 12649,
+          "words": 1946,
+          "tokens": 3045
+        },
+        {
+          "filename": "japanese.txt",
+          "characters": 4200,
+          "words": 109,
+          "tokens": 3569
+        },
+        {
+          "filename": "javanese-suriname.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 4249
+        },
+        {
+          "filename": "javanese.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 4249
+        },
+        {
+          "filename": "kachin.txt",
+          "characters": 4716,
+          "words": 1185,
+          "tokens": 2760
+        },
+        {
+          "filename": "latin.txt",
+          "characters": 9984,
+          "words": 1364,
+          "tokens": 2654
+        },
+        {
+          "filename": "latvian.txt",
+          "characters": 10513,
+          "words": 1389,
+          "tokens": 3676
+        },
+        {
+          "filename": "luxembourgish.txt",
+          "characters": 12353,
+          "words": 2014,
+          "tokens": 3896
+        },
+        {
+          "filename": "malayalam.txt",
+          "characters": 12583,
+          "words": 1682,
+          "tokens": 3109
+        },
+        {
+          "filename": "minangkabau.txt",
+          "characters": 12069,
+          "words": 1745,
+          "tokens": 3610
+        },
+        {
+          "filename": "norwegian-nynorsk.txt",
+          "characters": 10006,
+          "words": 1703,
+          "tokens": 2844
+        },
+        {
+          "filename": "occitan.txt",
+          "characters": 8741,
+          "words": 1592,
+          "tokens": 2980
+        },
+        {
+          "filename": "pampanga.txt",
+          "characters": 14063,
+          "words": 2186,
+          "tokens": 4050
+        },
+        {
+          "filename": "pemon.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3403
+        },
+        {
+          "filename": "persian-farsi.txt",
+          "characters": 9732,
+          "words": 1584,
+          "tokens": 3223
+        },
+        {
+          "filename": "plain-english.txt",
+          "characters": 5390,
+          "words": 1030,
+          "tokens": 1156
+        },
+        {
+          "filename": "polish.txt",
+          "characters": 11586,
+          "words": 1580,
+          "tokens": 3672
+        },
+        {
+          "filename": "portuguese.txt",
+          "characters": 11389,
+          "words": 1871,
+          "tokens": 2510
+        },
+        {
+          "filename": "romanian.txt",
+          "characters": 11904,
+          "words": 1814,
+          "tokens": 3478
+        },
+        {
+          "filename": "russian.txt",
+          "characters": 11799,
+          "words": 1605,
+          "tokens": 2823
+        },
+        {
+          "filename": "slovenian.txt",
+          "characters": 10081,
+          "words": 1499,
+          "tokens": 3513
+        },
+        {
+          "filename": "spanish.txt",
+          "characters": 11965,
+          "words": 1927,
+          "tokens": 2485
+        },
+        {
+          "filename": "sundanese.txt",
+          "characters": 13244,
+          "words": 1968,
+          "tokens": 3653
+        },
+        {
+          "filename": "swedish.txt",
+          "characters": 11654,
+          "words": 1691,
+          "tokens": 3209
+        },
+        {
+          "filename": "tamil.txt",
+          "characters": 13720,
+          "words": 1262,
+          "tokens": 4799
+        },
+        {
+          "filename": "ukrainian.txt",
+          "characters": 10686,
+          "words": 1578,
+          "tokens": 3481
+        },
+        {
+          "filename": "urdu.txt",
+          "characters": 10138,
+          "words": 2239,
+          "tokens": 3236
+        },
+        {
+          "filename": "wolaitta.txt",
+          "characters": 12159,
+          "words": 2583,
+          "tokens": 5082
+        },
+        {
+          "filename": "yiddish.txt",
+          "characters": 11749,
+          "words": 1775,
+          "tokens": 4884
+        }
+      ],
+      "stats": {
+        "totalFiles": 53,
+        "successfulFiles": 53,
+        "totalTokens": 176838,
+        "totalEstimatedCost": 0.011456600000000003,
+        "errors": []
+      }
+    },
+    {
+      "modelId": "x-ai/grok-3-mini",
+      "modelInfo": {
+        "id": "x-ai/grok-3-mini",
+        "canonical_slug": "x-ai/grok-3-mini",
+        "hugging_face_id": "",
+        "name": "xAI: Grok 3 Mini",
+        "created": 1749583245,
+        "description": "A lightweight model that thinks before responding. Fast, smart, and great for logic-based tasks that do not require deep domain knowledge. The raw thinking traces are accessible.",
+        "context_length": 131072,
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Grok",
+          "instruct_type": null
+        },
+        "pricing": {
+          "prompt": "0.0000003",
+          "completion": "0.0000005",
+          "request": "0",
+          "image": "0",
+          "web_search": "0",
+          "internal_reasoning": "0",
+          "input_cache_read": "0.000000075"
+        },
+        "top_provider": {
+          "context_length": 131072,
+          "max_completion_tokens": null,
+          "is_moderated": false
+        },
+        "per_request_limits": null,
+        "supported_parameters": [
+          "include_reasoning",
+          "logprobs",
+          "max_tokens",
+          "reasoning",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_logprobs",
+          "top_p"
+        ],
+        "default_parameters": {}
+      },
+      "results": [
+        {
+          "filename": "achinese.txt",
+          "characters": 12827,
+          "words": 1935,
+          "tokens": 3348
+        },
+        {
+          "filename": "afrikaans.txt",
+          "characters": 10336,
+          "words": 1685,
+          "tokens": 2691
+        },
+        {
+          "filename": "arabic-egyptian.txt",
+          "characters": 7646,
+          "words": 1349,
+          "tokens": 6612
+        },
+        {
+          "filename": "baluchi.txt",
+          "characters": 13542,
+          "words": 1816,
+          "tokens": 3470
+        },
+        {
+          "filename": "braj.txt",
+          "characters": 11279,
+          "words": 1796,
+          "tokens": 3193
+        },
+        {
+          "filename": "buginese.txt",
+          "characters": 13324,
+          "words": 1829,
+          "tokens": 3424
+        },
+        {
+          "filename": "bulgarian.txt",
+          "characters": 11373,
+          "words": 1766,
+          "tokens": 9917
+        },
+        {
+          "filename": "catalan.txt",
+          "characters": 11067,
+          "words": 1843,
+          "tokens": 3097
+        },
+        {
+          "filename": "chinese.txt",
+          "characters": 3006,
+          "words": 188,
+          "tokens": 2926
+        },
+        {
+          "filename": "czech.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3607
+        },
+        {
+          "filename": "dansk.txt",
+          "characters": 12013,
+          "words": 1795,
+          "tokens": 3346
+        },
+        {
+          "filename": "dutch.txt",
+          "characters": 12773,
+          "words": 1966,
+          "tokens": 3273
+        },
+        {
+          "filename": "english.txt",
+          "characters": 10638,
+          "words": 1747,
+          "tokens": 2744
+        },
+        {
+          "filename": "esperanto.txt",
+          "characters": 10013,
+          "words": 1616,
+          "tokens": 2727
+        },
+        {
+          "filename": "filipino.txt",
+          "characters": 13391,
+          "words": 2116,
+          "tokens": 3432
+        },
+        {
+          "filename": "finnish.txt",
+          "characters": 12225,
+          "words": 1402,
+          "tokens": 3546
+        },
+        {
+          "filename": "french.txt",
+          "characters": 11896,
+          "words": 1943,
+          "tokens": 3402
+        },
+        {
+          "filename": "frisian.txt",
+          "characters": 12126,
+          "words": 2019,
+          "tokens": 3254
+        },
+        {
+          "filename": "german.txt",
+          "characters": 11930,
+          "words": 1642,
+          "tokens": 3187
+        },
+        {
+          "filename": "greek.txt",
+          "characters": 12426,
+          "words": 1910,
+          "tokens": 10873
+        },
+        {
+          "filename": "hebrew.txt",
+          "characters": 7258,
+          "words": 1278,
+          "tokens": 6232
+        },
+        {
+          "filename": "hindi.txt",
+          "characters": 11464,
+          "words": 2145,
+          "tokens": 9837
+        },
+        {
+          "filename": "hungarian.txt",
+          "characters": 12030,
+          "words": 1539,
+          "tokens": 3966
+        },
+        {
+          "filename": "indonesian.txt",
+          "characters": 12504,
+          "words": 1725,
+          "tokens": 3204
+        },
+        {
+          "filename": "italian.txt",
+          "characters": 12649,
+          "words": 1946,
+          "tokens": 3307
+        },
+        {
+          "filename": "japanese.txt",
+          "characters": 4200,
+          "words": 109,
+          "tokens": 4161
+        },
+        {
+          "filename": "javanese-suriname.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 3753
+        },
+        {
+          "filename": "javanese.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 3753
+        },
+        {
+          "filename": "kachin.txt",
+          "characters": 4716,
+          "words": 1185,
+          "tokens": 3768
+        },
+        {
+          "filename": "latin.txt",
+          "characters": 9984,
+          "words": 1364,
+          "tokens": 2580
+        },
+        {
+          "filename": "latvian.txt",
+          "characters": 10513,
+          "words": 1389,
+          "tokens": 3531
+        },
+        {
+          "filename": "luxembourgish.txt",
+          "characters": 12353,
+          "words": 2014,
+          "tokens": 3461
+        },
+        {
+          "filename": "malayalam.txt",
+          "characters": 12583,
+          "words": 1682,
+          "tokens": 3226
+        },
+        {
+          "filename": "minangkabau.txt",
+          "characters": 12069,
+          "words": 1745,
+          "tokens": 3105
+        },
+        {
+          "filename": "norwegian-nynorsk.txt",
+          "characters": 10006,
+          "words": 1703,
+          "tokens": 2758
+        },
+        {
+          "filename": "occitan.txt",
+          "characters": 8741,
+          "words": 1592,
+          "tokens": 2495
+        },
+        {
+          "filename": "pampanga.txt",
+          "characters": 14063,
+          "words": 2186,
+          "tokens": 3603
+        },
+        {
+          "filename": "pemon.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3607
+        },
+        {
+          "filename": "persian-farsi.txt",
+          "characters": 9732,
+          "words": 1584,
+          "tokens": 3103
+        },
+        {
+          "filename": "plain-english.txt",
+          "characters": 5390,
+          "words": 1030,
+          "tokens": 1397
+        },
+        {
+          "filename": "polish.txt",
+          "characters": 11586,
+          "words": 1580,
+          "tokens": 3480
+        },
+        {
+          "filename": "portuguese.txt",
+          "characters": 11389,
+          "words": 1871,
+          "tokens": 3247
+        },
+        {
+          "filename": "romanian.txt",
+          "characters": 11904,
+          "words": 1814,
+          "tokens": 3631
+        },
+        {
+          "filename": "russian.txt",
+          "characters": 11799,
+          "words": 1605,
+          "tokens": 10471
+        },
+        {
+          "filename": "slovenian.txt",
+          "characters": 10081,
+          "words": 1499,
+          "tokens": 3392
+        },
+        {
+          "filename": "spanish.txt",
+          "characters": 11965,
+          "words": 1927,
+          "tokens": 3230
+        },
+        {
+          "filename": "sundanese.txt",
+          "characters": 13244,
+          "words": 1968,
+          "tokens": 3399
+        },
+        {
+          "filename": "swedish.txt",
+          "characters": 11654,
+          "words": 1691,
+          "tokens": 3411
+        },
+        {
+          "filename": "tamil.txt",
+          "characters": 13720,
+          "words": 1262,
+          "tokens": 12664
+        },
+        {
+          "filename": "ukrainian.txt",
+          "characters": 10686,
+          "words": 1578,
+          "tokens": 9373
+        },
+        {
+          "filename": "urdu.txt",
+          "characters": 10138,
+          "words": 2239,
+          "tokens": 8491
+        },
+        {
+          "filename": "wolaitta.txt",
+          "characters": 12159,
+          "words": 2583,
+          "tokens": 4011
+        },
+        {
+          "filename": "yiddish.txt",
+          "characters": 11749,
+          "words": 1775,
+          "tokens": 10294
+        }
+      ],
+      "stats": {
+        "totalFiles": 53,
+        "successfulFiles": 53,
+        "totalTokens": 236010,
+        "totalEstimatedCost": 0.0716262,
+        "errors": []
+      }
+    }
+  ],
+  "summary": {
+    "totalModels": 2,
+    "processedModels": 2,
+    "modelsWithErrors": 0,
+    "totalFiles": 106,
+    "totalSuccessfulFiles": 106,
+    "totalErrors": 0,
+    "totalTokens": 412848,
+    "totalCost": 0.0830828
+  }
+}

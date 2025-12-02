@@ -1,10 +1,10 @@
 # UDHR Token Counter
 
-A Deno script for counting input tokens in Universal Declaration of Human Rights (UDHR) texts via OpenRouter API.
+A script for counting input tokens in parallel text corpus via OpenRouter API.
 
 ## Data Sources
 
-UDHR texts in different languages are taken from the [uiuc-sst/udhr](https://github.com/uiuc-sst/udhr) repository - a multilingual corpus based on the Universal Declaration of Human Rights.
+Parallel text corpus is taken from the [uiuc-sst/udhr](https://github.com/uiuc-sst/udhr) repository - a multilingual corpus based on the Universal Declaration of Human Rights.
 
 ## Installation and Setup
 
@@ -19,25 +19,25 @@ UDHR texts in different languages are taken from the [uiuc-sst/udhr](https://git
 
 ## Usage
 
-For convenience, a `run` script is created in the project root that automatically applies all necessary Deno flags.
+The script can be run directly with Deno. The shebang in `bench.ts` allows it to be executed directly.
 
 ### Basic usage
 
-The script requires a results directory path where CSV and JSON files will be saved:
+The script requires an output directory where results will be saved:
 
 ```bash
-./run <results_dir>
-# or
-./bench.ts <results_dir>
+./bench.ts ./results
 ```
+
+The script will:
+1. Create a new JSON file with timestamp name in `./results/` (e.g., `2025-12-02_10-43-01_53langs_1models.json`).
+2. Update (or create) `./results/reports.json` which serves as an index for the viewer.
 
 ### Specify a model
 
 To use a specific model, use the `--model` option:
 
 ```bash
-./run ./results --model anthropic/claude-3-haiku:beta
-# or
 ./bench.ts ./results --model anthropic/claude-3-haiku:beta
 ```
 
@@ -51,220 +51,75 @@ If no model is specified, the script reads model IDs from `models.txt` file (one
 # openai/gpt-4o-mini
 # meta-llama/llama-3.1-8b-instruct
 
-./run ./results
+./bench.ts ./results
+```
+
+### Filter by language
+
+To process only files for a specific language, use the `--language` option:
+
+```bash
+./bench.ts ./results --language russian
 ```
 
 ### View help
 ```bash
-./run --help
-# or
 ./bench.ts --help
 ```
 
 ### View list of available files
 ```bash
-./run --list
-# or
 ./bench.ts --list
+```
+
+### View list of available languages
+```bash
+./bench.ts --languages
 ```
 
 ### View list of available models
 ```bash
-./run --models
-# or
 ./bench.ts --models
 ```
 
 ### Detailed output with raw API requests and responses
 ```bash
-./run ./results --model anthropic/claude-3-haiku:beta --verbose
-# or
 ./bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
 ```
 
 ## Output Data
 
-The script saves results to files in the specified results directory. For each model, two files are created:
+The script uses an accumulated data approach:
 
-1. **CSV file** (`<model-id>.csv`) - Contains token counting results for all UDHR texts
-2. **JSON file** (`<model-id>.json`) - Contains full model parameters from the API response
+1. **Individual Run Files**: Each run creates a unique JSON file in the output directory (e.g., `results/2023-12-01_10-00-00_50langs_10models.json`). This file contains full details of the run.
+2. **Index File**: `results/reports.json` is updated with a link to the new file.
 
-### CSV Format
+### Viewing Results
 
-The CSV file contains the following columns:
-```
-filename,characters,words,tokens
-eng_ks.txt,10638,1682,2847
-rus_sd.txt,21000,2956,3156
-...
-```
+Open `public/index.html` in your browser (via a local server) to view the dashboard. It automatically loads `reports.json` and fetches all linked result files, merging them into a single view.
 
-Columns:
-- `filename`: file name
-- `characters`: number of characters in the text
-- `words`: number of words (delimiters: spaces and punctuation)
-- `tokens`: number of input tokens from OpenRouter API
+1. Start a local server:
+   ```bash
+   # Using Python
+   python3 -m http.server
 
-### Model ID to Filename Conversion
-
-Model IDs are converted to filename-safe strings by replacing special characters with `-`. For example:
-- `anthropic/claude-3-haiku:beta` → `anthropic-claude-3-haiku-beta.csv`
-- `openai/gpt-4o-mini` → `openai-gpt-4o-mini.csv`
-
-### JSON Format
-
-The JSON file contains the complete model information from the OpenRouter API, including:
-- Model ID, name, description
-- Context length
-- Pricing information
-- Architecture details
-- And other model parameters
-
-All log messages (processing status, statistics, errors) are output to stderr.
-
-## Output Examples
-
-### Example: Processing with a single model
-
-```bash
-./run ./results --model anthropic/claude-3-haiku:beta
-```
-
-**stderr (logs and statistics):**
-```
-🚀 Starting UDHR token counting via OpenRouter API
-==================================================
-📁 Results directory: ./results
-📋 Using specified model: anthropic/claude-3-haiku:beta
-
-🔄 Processing model: anthropic/claude-3-haiku:beta
-==================================================
-💾 Model info saved to: ./results/anthropic-claude-3-haiku-beta.json
-📊 Files to process: 73
-
-🔄 Processing: eng_ks.txt (10638 characters)
-✅ eng_ks.txt: 1682 words, 2847 input tokens
-🔄 Processing: rus_sd.txt (21000 characters)
-✅ rus_sd.txt: 2956 words, 3156 input tokens
-...
-
-📈 RESULTS:
-📁 Files processed: 73
-✅ Successful: 73
-❌ Errors: 0
-🔢 Total input tokens: 185432
-💰 Total estimated cost: 0.1234567890
-💾 Results saved to: ./results/anthropic-claude-3-haiku-beta.csv
-```
-
-**Summary output (after processing all models):**
-```
-==================================================
-📊 SUMMARY
-==================================================
-🤖 Models processed: 2 of 2
-📁 Total files processed: 146
-✅ Successfully processed: 146
-🔢 Total tokens: 370864
-💰 Total cost: 0.2469135780
-
-⚠️  ERRORS DETAILS
-==================================================
-❌ model-id (2 error(s)):
-   - Token counting failed for file: filename1.txt
-   - Failed to read file: filename2.txt
-```
-
-### Example: Processing multiple models from models.txt
-
-If `models.txt` contains:
-```
-anthropic/claude-3-haiku:beta
-openai/gpt-4o-mini
-```
-
-```bash
-./run ./results
-```
-
-The script will process each model sequentially and create separate CSV and JSON files for each:
-- `./results/anthropic-claude-3-haiku-beta.csv`
-- `./results/anthropic-claude-3-haiku-beta.json`
-- `./results/openai-gpt-4o-mini.csv`
-- `./results/openai-gpt-4o-mini.json`
+   # Or using Deno
+   deno run --allow-net --allow-read https://deno.land/std/http/file_server.ts
+   ```
+2. Open `http://localhost:8000/public/index.html`
 
 ## Features
 
 - **Flexible model selection**: Specify a model via `--model` option or use `models.txt` file for batch processing
-- **Per-model results**: Each model's results are saved in separate CSV and JSON files
-- **Model information**: Full model parameters from API are saved alongside results
+- **Unified Dashboard**: Accumulate results over time and view them in a consolidated HTML dashboard
+- **Accumulated Results**: Automatically manages a history of runs in the output directory
+- **Model information**: Full model parameters from API are saved in the report
 - **Comprehensive summary**: Aggregated statistics across all processed models with total files, tokens, and cost
 - **Detailed error reporting**: Collects and displays all errors with specific messages per model
+- **Language filtering**: Process only specific language files with `--language` option
 - **Automatic 500ms delay** between requests to comply with API limits
 - **Network and API error handling** with detailed error messages
 - **Processes all UDHR texts** automatically from the `udhr/` directory
 - **`--verbose` mode** for debugging with raw HTTP requests and API responses output
 - **Word counting** by delimiters (spaces and punctuation marks)
-- **Safe filename conversion**: Model IDs are automatically converted to filename-safe strings
 - **Cost tracking**: Accumulates and displays total estimated cost from API responses
-
-## Language Code Mapping
-
-UDHR files use special codes to denote languages:
-
-- `ace` - Achinese
-- `afk` - Afrikaans
-- `arz` - Arabic (Egyptian)
-- `bal` - Baluchi
-- `bra` - Braj
-- `bug` - Buginese
-- `bul` - Bulgarian
-- `cat` - Catalan
-- `chi` - Chinese
-- `cze` - Czech
-- `dns` - Dansk
-- `dut` - Dutch
-- `eng` - English
-- `eo` - Esperanto
-- `far` - Persian/Farsi
-- `fil` - Filipino
-- `fin` - Finnish
-- `fri` - Frisian
-- `frn` - French
-- `ger` - German
-- `grc` - Greek
-- `heb` - Hebrew
-- `hin` - Hindi
-- `hun` - Hungarian
-- `ind` - Indonesian
-- `inz` - Indonesian
-- `ita` - Italian
-- `jav` - Javanese
-- `javs` - Javanese (Suriname)
-- `jpn` - Japanese
-- `kkn` - Kachin
-- `lat` - Latin
-- `lav` - Latvian
-- `lb` - Luxembourgish
-- `ltn` - Latin
-- `min` - Minangkabau
-- `mli` - Malayalam
-- `nno` - Norwegian (Nynorsk)
-- `oc` - Occitan
-- `pl` - Polish
-- `plain` - Plain English
-- `pmp` - Pampanga
-- `por` - Portuguese
-- `pql` - Pemon
-- `rum` - Romanian
-- `rus` - Russian
-- `slo` - Slovenian
-- `spa` - Spanish
-- `spn` - Spanish
-- `sun` - Sundanese
-- `swe` - Swedish
-- `tam` - Tamil
-- `ukr` - Ukrainian
-- `urd` - Urdu
-- `wal` - Wolaitta
-- `yid` - Yiddish

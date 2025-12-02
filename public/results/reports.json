@@ -1,0 +1,30 @@
+[
+  {
+    "filename": "2025-12-02_10-58-11-913_53langs_2models.json",
+    "timestamp": "2025-12-02_10-58-11-913",
+    "summary": {
+      "totalModels": 2,
+      "processedModels": 2,
+      "modelsWithErrors": 0,
+      "totalFiles": 106,
+      "totalSuccessfulFiles": 106,
+      "totalErrors": 0,
+      "totalTokens": 412848,
+      "totalCost": 0.0830828
+    }
+  },
+  {
+    "filename": "2025-12-02_12-01-38-704_53langs_17models.json",
+    "timestamp": "2025-12-02_12-01-38-704",
+    "summary": {
+      "totalModels": 17,
+      "processedModels": 17,
+      "modelsWithErrors": 2,
+      "totalFiles": 901,
+      "totalSuccessfulFiles": 898,
+      "totalErrors": 3,
+      "totalTokens": 3752578,
+      "totalCost": 0.538715188
+    }
+  }
+]

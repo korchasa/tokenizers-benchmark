@@ -1,13 +1,10 @@
 alibaba/tongyi-deepresearch-30b-a3b
-anthropic/claude-3.5-haiku
 anthropic/claude-haiku-4.5
 deepseek/deepseek-r1-0528-qwen3-8b
 deepseek/deepseek-v3.2-exp
-google/gemini-2.0-flash-lite-001
 google/gemini-2.5-flash-lite
-google/gemini-3-pro-preview
 ibm-granite/granite-4.0-h-micro
-meta-llama/llama-4-maverick
+meta-llama/llama-4-scout
 microsoft/phi-3-mini-128k-instruct
 microsoft/phi-4
 mistralai/mistral-medium-3.1
