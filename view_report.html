@@ -543,7 +543,14 @@
                             legend: { display: false },
                             datalabels: {
                                 display: true, anchor: 'end', align: 'end',
-                                formatter: (v) => v.toFixed(2),
+                                formatter: (v) => {
+                                    const pct = ((v - 1) * 100).toFixed(0);
+                                    return (pct > 0 ? '+' : '') + pct + '%';
+                                },
+                                color: (v) => {
+                                    const pct = (v - 1) * 100;
+                                    return pct > 0 ? '#d32f2f' : '#388e3c'; // Red for positive, green for negative
+                                },
                                 font: { size: 10 }
                             }
                         }
