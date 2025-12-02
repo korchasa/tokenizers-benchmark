@@ -1,10 +1,6 @@
-# UDHR Token Counter
+# Tokenization Benchmarking
 
-A script for counting input tokens in parallel text corpus via OpenRouter API.
-
-## Data Sources
-
-Parallel text corpus is taken from the [uiuc-sst/udhr](https://github.com/uiuc-sst/udhr) repository - a multilingual corpus based on the Universal Declaration of Human Rights.
+A script for benchmarking tokenization efficiency of different models.
 
 ## Installation and Setup
 
