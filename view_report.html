@@ -276,6 +276,9 @@
                     <h2>Language Tax (Relative to English)</h2>
                     <p style="font-size: 0.85em; color: #666;">Ratio of [Selected Metric] vs English. (1.0 = Same as
                         English)</p>
+                    <div class="controls">
+                        <select id="taxModelSelect"></select>
+                    </div>
                     <div class="chart-container-large">
                         <canvas id="taxChart"></canvas>
                     </div>
@@ -403,13 +406,18 @@
 
                 // Populate dropdowns
                 const langSelect = document.getElementById('effLanguageSelect');
-                langSelect.innerHTML = processedData.languages.map(l => `<option value="${l}">${l}</option>`).join('');
-                if (processedData.languages.includes('Russian')) langSelect.value = 'Russian';
+                langSelect.innerHTML = '<option value="average" selected>Average</option>' +
+                    processedData.languages.map(l => `<option value="${l}">${l}</option>`).join('');
+
+                const modelSelect = document.getElementById('taxModelSelect');
+                modelSelect.innerHTML = '<option value="average" selected>Average</option>' +
+                    processedData.models.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
 
             // Listeners
             document.getElementById('metricSelect').addEventListener('change', updateAll);
             document.getElementById('colorScale').addEventListener('change', updateTable);
             langSelect.addEventListener('change', updateEffChart);
+            modelSelect.addEventListener('change', updateTaxChart);
 
             initCharts();
             updateTable();
@@ -563,8 +571,9 @@
             function updateTaxChart() {
                 const { languages, models } = processedData;
                 const metric = document.getElementById('metricSelect').value;
+                const selectedModelId = document.getElementById('taxModelSelect').value;
 
-                // Calculate average tax for each language
+                // Calculate tax for each language
                 // Tax = Metric(Lang) / Metric(English)
                 // If metric is Tokens/Text, this is standard tax.
                 // If metric is Tokens/Char, this is also valid.
@@ -573,7 +582,11 @@
                     let sumTax = 0;
                     let count = 0;
 
-                    models.forEach(m => {
+                    // Filter models based on selection
+                    const modelsToUse = selectedModelId === 'average' ? models :
+                        models.filter(m => m.id === selectedModelId);
+
+                    modelsToUse.forEach(m => {
                         const base = getMetricValue(m.results['English'], metric);
                         const val = getMetricValue(m.results[lang], metric);
                         if (base > 0 && val > 0) {
@@ -598,23 +611,42 @@
             }
 
             function updateEffChart() {
-                const { models } = processedData;
+                const { models, languages } = processedData;
                 const metric = document.getElementById('metricSelect').value;
                 const lang = document.getElementById('effLanguageSelect').value;
 
                 // Sort models by metric (Low is Good)
-                const data = models.map(m => ({
-                    name: m.name,
-                    val: getMetricValue(m.results[lang], metric)
-                }))
+                const data = models.map(m => {
+                    let val;
+                    if (lang === 'average') {
+                        // Calculate average across all languages
+                        let total = 0;
+                        let count = 0;
+                        languages.forEach(l => {
+                            const langVal = getMetricValue(m.results[l], metric);
+                            if (langVal > 0) {
+                                total += langVal;
+                                count++;
+                            }
+                        });
+                        val = count > 0 ? total / count : 0;
+                    } else {
+                        val = getMetricValue(m.results[lang], metric);
+                    }
+                    return {
+                        name: m.name,
+                        val: val
+                    };
+                })
                     .filter(x => x.val > 0)
                     .sort((a, b) => a.val - b.val) // Ascending (Lower is better)
                     .slice(0, 20);
 
+                const displayLabel = lang === 'average' ? 'Average' : lang;
                 charts.eff.data = {
                     labels: data.map(x => x.name),
                     datasets: [{
-                        label: `${lang} - ${metric}`,
+                        label: `${displayLabel} - ${metric}`,
                         data: data.map(x => x.val),
                         backgroundColor: 'rgb(115, 115, 115)',
                         barThickness: 15
