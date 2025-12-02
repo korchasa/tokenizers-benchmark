@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokenizer Benchmark Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        :root {
+            --background: rgb(245, 245, 245);
+            --foreground: rgb(10, 10, 10);
+            --card: rgb(255, 255, 255);
+            --card-foreground: rgb(10, 10, 10);
+            --popover: rgb(255, 255, 255);
+            --popover-foreground: rgb(10, 10, 10);
+            --primary: rgb(115, 115, 115);
+            --primary-foreground: rgb(250, 250, 250);
+            --secondary: rgb(245, 245, 245);
+            --secondary-foreground: rgb(23, 23, 23);
+            --muted: rgb(245, 245, 245);
+            --muted-foreground: rgb(113, 113, 113);
+            --accent: rgb(245, 245, 245);
+            --accent-foreground: rgb(23, 23, 23);
+            --destructive: rgb(231, 0, 11);
+            --destructive-foreground: rgb(245, 245, 250);
+            --border: rgb(229, 229, 229);
+            --input: rgb(229, 229, 229);
+            --ring: rgb(161, 161, 161);
+            --chart-1: rgb(115, 115, 115);
+            --radius: 0rem;
+            --spacing: 0.25rem;
+            --shadow-x: 0px;
+            --shadow-y: 0px;
+            --font-sans: monospace;
+            --font-serif: monospace;
+            --font-mono: monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--background);
+            color: var(--foreground);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        header .controls {
+            margin-bottom: 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 20px;
+            flex-direction: column;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted-foreground);
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: var(--destructive);
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-x) var(--shadow-y) 0px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            color: var(--card-foreground);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: var(--card);
+            z-index: 1;
+            border-right: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--muted);
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--foreground);
+            z-index: 2;
+        }
+
+        th:first-child {
+            z-index: 3;
+        }
+
+        th:hover {
+            background-color: var(--accent);
+        }
+
+        .heatmap-cell {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 600px;
+            width: 100%;
+        }
+
+        .chart-container-large {
+            position: relative;
+            height: auto;
+            min-height: 1200px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container-large {
+                min-height: 1400px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .chart-container-large {
+                min-height: 1600px;
+            }
+        }
+
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--input);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-family: var(--font-sans);
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+
+        .text-muted {
+            color: var(--muted-foreground);
+        }
+
+        .diff-positive {
+            color: #d32f2f;
+            font-size: 0.85em;
+        }
+
+        .diff-negative {
+            color: #388e3c;
+            font-size: 0.85em;
+        }
+
+        .diff-neutral {
+            color: #757575;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Tokenizer Benchmark Explorer</h1>
+                <p class="text-muted">Visualize tokenization efficiency across languages and models</p>
+            </div>
+            <div class="controls">
+                <label style="font-weight: bold;">Metric:</label>
+                <select id="metricSelect">
+                    <option value="text" selected>Text (Total Tokens)</option>
+                    <option value="word">Word (Tokens/Word)</option>
+                    <option value="char">Character (Tokens/Char)</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="loading" class="loading">
+            <p>Loading report data...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>Failed to load report data. Please ensure the server is running and <code>/report.json</code> is available.</p>
+        </div>
+
+        <div id="dashboard" class="dashboard" style="display: none;">
+
+            <!-- Charts -->
+            <div class="metrics-grid">
+                <div class="card">
+                    <h2>Language Tax (Relative to English)</h2>
+                    <p style="font-size: 0.85em; color: #666;">Ratio of [Selected Metric] vs English. (1.0 = Same as
+                        English)</p>
+                    <div class="controls">
+                        <select id="taxModelSelect"></select>
+                    </div>
+                    <div class="chart-container-large">
+                        <canvas id="taxChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Efficiency by Model</h2>
+                    <p style="font-size: 0.85em; color: #666;">Selected Metric (Lower is Better)</p>
+                    <div class="controls">
+                        <select id="effLanguageSelect"></select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="effChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Efficiency Matrix -->
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Efficiency Matrix</h2>
+                    <div class="controls">
+                        <label><input type="checkbox" id="colorScale" checked> Color Scale</label>
+                    </div>
+                </div>
+                <p style="font-size: 0.85em; color: #666;">Values are [Selected Metric]. Percentages are relative to
+                    English.</p>
+                <div style="overflow-x: auto; max-height: 800px;">
+                    <table id="mainTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <script>
+            Chart.register(ChartDataLabels);
+
+            let rawData = null;
+            let processedData = null;
+            let charts = {};
+
+            // --- Processing Logic ---
+
+            function cleanLangName(filename) {
+                return filename.replace('.txt', '').charAt(0).toUpperCase() + filename.replace('.txt', '').slice(1);
+            }
+
+            function processData(data) {
+                const allLanguages = new Set();
+                data.models.forEach(m => {
+                    m.results.forEach(r => {
+                        allLanguages.add(cleanLangName(r.filename));
+                    });
+                });
+                const languages = Array.from(allLanguages).sort();
+
+                // Simplify structure: models array where each model has a results map keyed by language
+                const models = data.models.map(m => {
+                    const resultsMap = {};
+                    m.results.forEach(r => {
+                        const lang = cleanLangName(r.filename);
+                        resultsMap[lang] = {
+                            tokens: r.tokens,
+                            chars: r.characters,
+                            words: r.words || 1, // Fallback if missing
+                        };
+                    });
+
+                    return {
+                        id: m.modelId,
+                        name: m.modelInfo?.name || m.modelId,
+                        results: resultsMap
+                    };
+                });
+
+                return { languages, models };
+            }
+
+            function getMetricValue(result, metric) {
+                if (!result) return 0;
+                if (metric === 'text') return result.tokens;
+                if (metric === 'word') return result.tokens / result.words;
+                if (metric === 'char') return result.tokens / result.chars;
+                return 0;
+            }
+
+            // --- UI Rendering ---
+
+            function initDashboard(data) {
+                processedData = processData(data);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+
+                // Populate dropdowns
+                const langSelect = document.getElementById('effLanguageSelect');
+                langSelect.innerHTML = '<option value="average" selected>Average</option>' +
+                    processedData.languages.map(l => `<option value="${l}">${l}</option>`).join('');
+
+                const modelSelect = document.getElementById('taxModelSelect');
+                modelSelect.innerHTML = '<option value="average" selected>Average</option>' +
+                    processedData.models.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+
+            // Listeners
+            document.getElementById('metricSelect').addEventListener('change', updateAll);
+            document.getElementById('colorScale').addEventListener('change', updateTable);
+            langSelect.addEventListener('change', updateEffChart);
+            modelSelect.addEventListener('change', updateTaxChart);
+
+            initCharts();
+            updateTable();
+            updateTaxChart();
+            updateEffChart();
+            }
+
+        function updateAll() {
+            updateTable();
+            updateTaxChart();
+            updateEffChart();
+        }
+
+            function updateTable() {
+                const { languages, models } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const useColor = document.getElementById('colorScale').checked;
+
+                const thead = document.getElementById('mainTable').querySelector('thead');
+                const tbody = document.getElementById('mainTable').querySelector('tbody');
+
+                // Headers: Languages
+                let headerHTML = `<tr>
+                <th style="width: 200px; min-width: 200px; z-index: 3;">Model</th>
+                <th style="width: 80px;">Avg</th>
+                ${languages.map(l => `<th>${l}</th>`).join('')}
+            </tr>`;
+                thead.innerHTML = headerHTML;
+
+                // Pre-calculate English values for all models
+                const englishValues = {}; // modelId -> value
+                models.forEach(m => {
+                    englishValues[m.id] = getMetricValue(m.results['English'], metric);
+                });
+
+                // Find Global Min/Max for gradient
+                let maxRatio = 0;
+                let minRatio = 0;
+
+                languages.forEach(lang => {
+                    models.forEach(m => {
+                        const base = englishValues[m.id];
+                        const val = getMetricValue(m.results[lang], metric);
+                        if (base > 0 && val > 0) {
+                            const ratio = (val - base) / base;
+                            if (ratio > maxRatio) maxRatio = ratio;
+                            if (ratio < minRatio) minRatio = ratio;
+                        }
+                    });
+                });
+
+                // Generate Rows: Models (sorted by Avg)
+                const modelsWithAvg = models.map(m => {
+                    // Calculate Avg for this model
+                    let totalMetric = 0;
+                    let count = 0;
+                    languages.forEach(l => {
+                        const v = getMetricValue(m.results[l], metric);
+                        if (v > 0) { totalMetric += v; count++; }
+                    });
+                    const avg = count ? (totalMetric / count) : 0;
+                    return { model: m, avg: avg };
+                }).sort((a, b) => a.avg - b.avg); // Sort by Avg ascending (lower is better)
+
+                tbody.innerHTML = modelsWithAvg.map(({ model: m, avg }) => {
+                    const digits = metric === 'text' ? 0 : (metric === 'word' ? 1 : 3);
+                    const displayAvg = avg.toFixed(digits);
+
+                    const cells = languages.map(lang => {
+                        const val = getMetricValue(m.results[lang], metric);
+                        const base = englishValues[m.id];
+
+                        if (!val) return '<td>-</td>';
+
+                        let displayVal = val.toFixed(digits);
+                        let diffHtml = '';
+                        let bgStyle = '';
+
+                        if (base > 0) {
+                            const diff = (val - base) / base;
+                            const pct = (diff * 100).toFixed(0);
+                            const sign = diff > 0 ? '+' : '';
+                            if (lang !== 'English') {
+                                diffHtml = ` <span>(${sign}${pct}%)</span>`;
+                            }
+
+                            // Coloring
+                            if (useColor) {
+                                if (lang === 'English') {
+                                    bgStyle = 'background-color: rgb(115, 115, 115); color: white;'; // Gray background, white text
+                                } else if (Math.abs(diff) < 0.001) {
+                                    bgStyle = 'background-color: rgb(255, 255, 255);'; // White
+                                } else if (diff < 0) {
+                                    const intensity = Math.min(1, diff / minRatio);
+                                    bgStyle = `background-color: rgba(200, 255, 200, ${intensity});`;
+                                } else {
+                                    // Positive diff (Red) - High inefficiency
+                                    // Use pure red base (255, 0, 0) instead of pastel (255, 200, 200)
+                                    // Scale:
+                                    // 0% -> 0 opacity
+                                    // 100% (1.0) -> 0.6 opacity (Significant red, critical threshold)
+                                    // Max% -> 1.0 opacity (Full red)
+
+                                    let intensity;
+                                    if (diff <= 1.0) {
+                                        // Scale 0..1.0 to 0..0.6
+                                        intensity = 0.6 * (diff / 1.0);
+                                    } else {
+                                        // Scale 1.0..maxRatio to 0.6..1.0
+                                        const range = Math.max(maxRatio - 1.0, 0.0001);
+                                        intensity = 0.6 + 0.4 * ((diff - 1.0) / range);
+                                    }
+                                    // Clamp
+                                    intensity = Math.max(0, Math.min(1, intensity));
+
+                                    bgStyle = `background-color: rgba(255, 0, 0, ${intensity});`;
+                                }
+                            }
+                        }
+
+                        return `<td class="heatmap-cell" style="${bgStyle}" title="${m.name} - ${lang}">${displayVal}${diffHtml}</td>`;
+                    }).join('');
+
+                    return `<tr>
+                    <th style="text-align: left;">${m.name}</th>
+                    <td style="font-weight: bold;">${displayAvg}</td>
+                    ${cells}
+                </tr>`;
+                }).join('');
+            }
+
+            function initCharts() {
+                const ctxTax = document.getElementById('taxChart').getContext('2d');
+                charts.tax = new Chart(ctxTax, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                display: true, anchor: 'end', align: 'end',
+                                formatter: (v) => {
+                                    const pct = ((v - 1) * 100).toFixed(0);
+                                    return (pct > 0 ? '+' : '') + pct + '%';
+                                },
+                                color: '#000000',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    }
+                });
+
+                const ctxEff = document.getElementById('effChart').getContext('2d');
+                charts.eff = new Chart(ctxEff, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                display: true, anchor: 'end', align: 'end',
+                                formatter: (v) => {
+                                    const metric = document.getElementById('metricSelect').value;
+                                    const digits = metric === 'text' ? 0 : (metric === 'word' ? 2 : 3);
+                                    return v.toFixed(digits);
+                                },
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateTaxChart() {
+                const { languages, models } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const selectedModelId = document.getElementById('taxModelSelect').value;
+
+                // Calculate tax for each language
+                // Tax = Metric(Lang) / Metric(English)
+                // If metric is Tokens/Text, this is standard tax.
+                // If metric is Tokens/Char, this is also valid.
+
+                const langTax = languages.map(lang => {
+                    let sumTax = 0;
+                    let count = 0;
+
+                    // Filter models based on selection
+                    const modelsToUse = selectedModelId === 'average' ? models :
+                        models.filter(m => m.id === selectedModelId);
+
+                    modelsToUse.forEach(m => {
+                        const base = getMetricValue(m.results['English'], metric);
+                        const val = getMetricValue(m.results[lang], metric);
+                        if (base > 0 && val > 0) {
+                            sumTax += (val / base);
+                            count++;
+                        }
+                    });
+
+                    return { lang, tax: count ? sumTax / count : 0 };
+                }).filter(x => x.tax > 0).sort((a, b) => b.tax - a.tax);
+
+                // Dynamic height adjustment
+                const container = document.getElementById('taxChart').parentElement;
+                // ~25px per bar + header/padding
+                const newHeight = Math.max(400, langTax.length * 25 + 50);
+                container.style.height = `${newHeight}px`;
+
+                charts.tax.data = {
+                    labels: langTax.map(x => x.lang),
+                    datasets: [{
+                        label: 'Average Tax vs English',
+                        data: langTax.map(x => x.tax),
+                        backgroundColor: langTax.map(x => x.lang === 'English' ? 'rgb(115, 115, 115)' : 'rgb(0, 0, 0)'),
+                        barThickness: 15
+                    }]
+                };
+                charts.tax.update();
+                charts.tax.resize(); // Explicit resize
+            }
+
+            function updateEffChart() {
+                const { models, languages } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const lang = document.getElementById('effLanguageSelect').value;
+
+                // Sort models by metric (Low is Good)
+                const data = models.map(m => {
+                    let val;
+                    if (lang === 'average') {
+                        // Calculate average across all languages
+                        let total = 0;
+                        let count = 0;
+                        languages.forEach(l => {
+                            const langVal = getMetricValue(m.results[l], metric);
+                            if (langVal > 0) {
+                                total += langVal;
+                                count++;
+                            }
+                        });
+                        val = count > 0 ? total / count : 0;
+                    } else {
+                        val = getMetricValue(m.results[lang], metric);
+                    }
+                    return {
+                        name: m.name,
+                        val: val
+                    };
+                })
+                    .filter(x => x.val > 0)
+                    .sort((a, b) => a.val - b.val); // Ascending (Lower is better)
+                    // Removed .slice(0, 20) to show all models
+
+                const displayLabel = lang === 'average' ? 'Average' : lang;
+
+                // Dynamic height adjustment
+                const container = document.getElementById('effChart').parentElement;
+                // ~25px per bar + header/padding
+                const newHeight = Math.max(400, data.length * 25 + 50);
+                container.style.height = `${newHeight}px`;
+
+                charts.eff.data = {
+                    labels: data.map(x => x.name),
+                    datasets: [{
+                        label: `${displayLabel} - ${metric}`,
+                        data: data.map(x => x.val),
+                        backgroundColor: 'rgb(0, 0, 0)',
+                        barThickness: 15
+                    }]
+                };
+                charts.eff.options.scales = {
+                    x: { title: { display: true, text: `Tokens per ${metric === 'text' ? 'Text' : (metric === 'word' ? 'Word' : 'Char')}` } }
+                };
+                charts.eff.update();
+                charts.eff.resize(); // Explicit resize
+            }
+
+            // --- Load data from server ---
+            async function loadAllReports() {
+                try {
+                    // 1. Fetch the index file (reports.json)
+                    // Looking for reports.json in ./results/ relative to this HTML file
+                    const indexResponse = await fetch('./results/reports.json');
+                    if (!indexResponse.ok) throw new Error(`HTTP ${indexResponse.status}: ${indexResponse.statusText}`);
+
+                    const indexData = await indexResponse.json();
+
+                    if (!Array.isArray(indexData)) {
+                        // Backward compatibility: if it's not an array, it might be a single report
+                        if (indexData.models) {
+                            return indexData;
+                        }
+                        throw new Error('Invalid reports.json format');
+                    }
+
+                    // 2. Sort reports by timestamp (oldest to newest) to ensure correct overwrite order
+                    indexData.sort((a, b) => {
+                        return (a.timestamp || '').localeCompare(b.timestamp || '');
+                    });
+
+                    // 3. Fetch all individual report files
+                    // Files are expected to be in the same ./results/ directory
+                    const reportPromises = indexData.map(entry =>
+                        fetch(`./results/${entry.filename}`).then(r => {
+                            if (!r.ok) {
+                                console.warn(`Failed to load ./results/${entry.filename}`);
+                                return null;
+                            }
+                            return r.json();
+                        })
+                    );
+
+                    const reports = await Promise.all(reportPromises);
+
+                    // 4. Merge reports
+                    const mergedData = {
+                        models: []
+                    };
+
+                    // Map: ModelID -> ModelData
+                    // We use this to merge results for the same model across different reports
+                    const modelsMap = new Map();
+
+                    for (const report of reports) {
+                        if (!report || !report.models) continue;
+
+                        for (const model of report.models) {
+                            if (!modelsMap.has(model.modelId)) {
+                                modelsMap.set(model.modelId, {
+                                    modelId: model.modelId,
+                                    modelInfo: model.modelInfo,
+                                    results: [],
+                                    stats: { ...model.stats } // Clone stats
+                                });
+                            }
+
+                            const existingModel = modelsMap.get(model.modelId);
+
+                            // Update model info if newer one is present
+                            if (model.modelInfo) {
+                                existingModel.modelInfo = model.modelInfo;
+                            }
+
+                            // Merge results: Overwrite results for same file (language)
+                            // Map: Filename -> Result
+                            const resultsMap = new Map();
+                            existingModel.results.forEach(r => resultsMap.set(r.filename, r));
+
+                            model.results.forEach(r => {
+                                resultsMap.set(r.filename, r);
+                            });
+
+                            existingModel.results = Array.from(resultsMap.values());
+
+                            // Merge stats (approximate, mainly for display if needed)
+                            // Note: Accurate stats recalculation would require re-summing results
+                            existingModel.stats.totalFiles = existingModel.results.length;
+                            existingModel.stats.successfulFiles = existingModel.results.length; // Simplified
+                        }
+                    }
+
+                    mergedData.models = Array.from(modelsMap.values());
+                    return mergedData;
+
+                } catch (err) {
+                    throw err;
+                }
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                loadAllReports()
+                    .then(data => {
+                        rawData = data;
+                        initDashboard(data);
+                    })
+                    .catch(err => {
+                        console.error('Failed to load reports:', err);
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('error').style.display = 'block';
+                        document.getElementById('error').innerHTML = `<p>Failed to load report data: ${err.message}</p><p>Ensure <code>./results/reports.json</code> and result files exist.</p>`;
+                    });
+            });
+
+        </script>
+</body>
+
+</html>
