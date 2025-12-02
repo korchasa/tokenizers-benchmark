@@ -2,6 +2,22 @@
 
 A script for benchmarking tokenization efficiency of different models.
 
+## Methodology
+
+To evaluate tokenization efficiency, the script uses the text of the **Universal Declaration of Human Rights (UDHR)** in various languages. This text was chosen as a standard, publicly available corpus translated into many languages.
+
+The testing process is as follows:
+
+1.  **Source Data**: Text files containing the declaration are located in the `udhr/` directory. Each file corresponds to a specific language (e.g., `braj.txt`, `english.txt`).
+2.  **Token Counting**:
+    *   The script sends the content of each file to the OpenRouter API.
+    *   It uses the `chat/completions` endpoint with `max_tokens: 16` to minimize generation and retrieve usage statistics.
+    *   The `usage.prompt_tokens` value is extracted from the API response, representing how many tokens the model's tokenizer used to encode the text.
+3.  **Metrics**:
+    *   **Token Count**: The primary metric. Fewer tokens for the same text indicate a more efficient tokenizer for that language (allowing more context and lower costs).
+    *   **Cost**: Estimated cost based on the API response.
+    *   **Stats**: Character and word counts are also recorded for comparison.
+
 ## Installation and Setup
 
 1. Install Deno if not already installed: https://deno.land/
@@ -82,22 +98,6 @@ To process only files for a specific language, use the `--language` option:
 ```bash
 ./bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
 ```
-
-## Methodology
-
-To evaluate tokenization efficiency, the script uses the text of the **Universal Declaration of Human Rights (UDHR)** in various languages. This text was chosen as a standard, publicly available corpus translated into many languages.
-
-The testing process is as follows:
-
-1.  **Source Data**: Text files containing the declaration are located in the `udhr/` directory. Each file corresponds to a specific language (e.g., `braj.txt`, `english.txt`).
-2.  **Token Counting**:
-    *   The script sends the content of each file to the OpenRouter API.
-    *   It uses the `chat/completions` endpoint with `max_tokens: 16` to minimize generation and retrieve usage statistics.
-    *   The `usage.prompt_tokens` value is extracted from the API response, representing how many tokens the model's tokenizer used to encode the text.
-3.  **Metrics**:
-    *   **Token Count**: The primary metric. Fewer tokens for the same text indicate a more efficient tokenizer for that language (allowing more context and lower costs).
-    *   **Cost**: Estimated cost based on the API response.
-    *   **Stats**: Character and word counts are also recorded for comparison.
 
 ## Output Data
 
