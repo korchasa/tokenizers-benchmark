@@ -58,32 +58,36 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
+        }
+
+        header .controls {
+            margin-bottom: 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         h1 {
             margin: 0;
         }
 
-        .upload-section {
-            background: var(--card);
-            padding: 20px;
-            border-radius: var(--radius);
-            box-shadow: 0px var(--shadow-y) 0px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-            text-align: center;
-            border: 2px dashed var(--border);
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-
-        .upload-section:hover {
-            border-color: var(--primary);
-        }
-
         .dashboard {
-            display: none;
+            display: flex;
             gap: 20px;
             flex-direction: column;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted-foreground);
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: var(--destructive);
         }
 
         .card {
@@ -213,9 +217,6 @@
             display: none;
         }
 
-        #fileInput {
-            display: none;
-        }
 
         .text-muted {
             color: var(--muted-foreground);
@@ -246,29 +247,25 @@
                 <h1>Tokenizer Benchmark Explorer</h1>
                 <p class="text-muted">Visualize tokenization efficiency across languages and models</p>
             </div>
-            <div>
-                <button onclick="document.getElementById('fileInput').click()">Load JSON Report</button>
+            <div class="controls">
+                <label style="font-weight: bold;">Metric:</label>
+                <select id="metricSelect">
+                    <option value="text" selected>Text (Total Tokens)</option>
+                    <option value="word">Word (Tokens/Word)</option>
+                    <option value="char">Character (Tokens/Char)</option>
+                </select>
             </div>
         </header>
 
-        <div class="upload-section" id="dropZone" onclick="document.getElementById('fileInput').click()">
-            <input type="file" id="fileInput" accept=".json">
-            <p><strong>Click to upload</strong> or drag and drop your <code>udhr-top20-*.json</code> file here</p>
+        <div id="loading" class="loading">
+            <p>Loading report data...</p>
         </div>
 
-        <div id="dashboard" class="dashboard">
+        <div id="error" class="error" style="display: none;">
+            <p>Failed to load report data. Please ensure the server is running and <code>/report.json</code> is available.</p>
+        </div>
 
-            <!-- Global Controls -->
-            <div class="card">
-                <div class="controls">
-                    <label style="font-weight: bold;">Metric:</label>
-                    <select id="metricSelect">
-                        <option value="text" selected>Text (Total Tokens)</option>
-                        <option value="word">Word (Tokens/Word)</option>
-                        <option value="char">Character (Tokens/Char)</option>
-                    </select>
-                </div>
-            </div>
+        <div id="dashboard" class="dashboard" style="display: none;">
 
             <!-- Charts -->
             <div class="metrics-grid">
@@ -322,35 +319,6 @@
             let processedData = null;
             let charts = {};
 
-            // --- File Handling ---
-            const dropZone = document.getElementById('dropZone');
-            const fileInput = document.getElementById('fileInput');
-
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--primary)'; });
-            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = 'var(--border)';
-                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) handleFile(e.target.files[0]);
-            });
-
-            function handleFile(file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        rawData = JSON.parse(e.target.result);
-                        initDashboard(rawData);
-                    } catch (err) {
-                        alert('Error parsing JSON: ' + err.message);
-                    }
-                };
-                reader.readAsText(file);
-            }
-
             // --- Processing Logic ---
 
             function cleanLangName(filename) {
@@ -401,7 +369,8 @@
             function initDashboard(data) {
                 processedData = processData(data);
 
-                document.querySelector('.upload-section').style.display = 'none';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'flex';
 
                 // Populate dropdowns
@@ -548,10 +517,7 @@
                                     const pct = ((v - 1) * 100).toFixed(0);
                                     return (pct > 0 ? '+' : '') + pct + '%';
                                 },
-                                color: (context) => {
-                                    const v = context.dataset.data[context.dataIndex];
-                                    return v > 1 ? '#d32f2f' : (v < 1 ? '#388e3c' : '#000000');
-                                },
+                                color: '#000000',
                                 font: { size: 12, weight: 'bold' }
                             }
                         }
@@ -672,25 +638,21 @@
                 charts.eff.update();
             }
 
-            // --- Autoload ---
+            // --- Load data from server ---
             window.addEventListener('DOMContentLoaded', () => {
-                fetch('./report.json')
+                fetch('/report.json')
                     .then(r => {
-                        if (!r.ok) throw new Error(r.statusText);
+                        if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
                         return r.json();
                     })
-                    .then(initDashboard)
+                    .then(data => {
+                        rawData = data;
+                        initDashboard(data);
+                    })
                     .catch(err => {
-                        console.warn('Autoload failed:', err);
-                        const dropZone = document.getElementById('dropZone');
-                        if (dropZone) {
-                            const p = document.createElement('p');
-                            p.style.fontSize = '0.8em';
-                            p.style.color = '#666';
-                            p.style.marginTop = '10px';
-                            p.textContent = '(Autoload failed. Please drag & drop report.json)';
-                            dropZone.appendChild(p);
-                        }
+                        console.error('Failed to load report:', err);
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('error').style.display = 'block';
                     });
             });
 
