@@ -469,8 +469,8 @@
                     });
                 });
 
-                // Generate Rows: Models
-                tbody.innerHTML = models.map(m => {
+                // Generate Rows: Models (sorted by Avg)
+                const modelsWithAvg = models.map(m => {
                     // Calculate Avg for this model
                     let totalMetric = 0;
                     let count = 0;
@@ -479,6 +479,10 @@
                         if (v > 0) { totalMetric += v; count++; }
                     });
                     const avg = count ? (totalMetric / count) : 0;
+                    return { model: m, avg: avg };
+                }).sort((a, b) => a.avg - b.avg); // Sort by Avg ascending (lower is better)
+
+                tbody.innerHTML = modelsWithAvg.map(({ model: m, avg }) => {
                     const displayAvg = metric === 'text' ? Math.round(avg) : avg.toFixed(3);
 
                     const cells = languages.map(lang => {
@@ -495,16 +499,14 @@
                             const diff = (val - base) / base;
                             const pct = (diff * 100).toFixed(0);
                             const sign = diff > 0 ? '+' : '';
-                            const diffClass = diff > 0 ? 'diff-positive' : (diff < 0 ? 'diff-negative' : 'diff-neutral');
-
                             if (lang !== 'English') {
-                                diffHtml = ` <span class="${diffClass}">(${sign}${pct}%)</span>`;
+                                diffHtml = ` <span>(${sign}${pct}%)</span>`;
                             }
 
                             // Coloring
                             if (useColor) {
                                 if (lang === 'English') {
-                                    bgStyle = 'background-color: rgb(0, 0, 0); color: white;'; // Black background, white text
+                                    bgStyle = 'background-color: rgb(115, 115, 115); color: white;'; // Gray background, white text
                                 } else if (Math.abs(diff) < 0.001) {
                                     bgStyle = 'background-color: rgb(255, 255, 255);'; // White
                                 } else if (diff < 0) {
@@ -603,7 +605,7 @@
                     datasets: [{
                         label: 'Average Tax vs English',
                         data: langTax.map(x => x.tax),
-                        backgroundColor: langTax.map(x => x.lang === 'English' ? 'rgb(0, 0, 0)' : 'rgb(115, 115, 115)'),
+                        backgroundColor: langTax.map(x => x.lang === 'English' ? 'rgb(115, 115, 115)' : 'rgb(0, 0, 0)'),
                         barThickness: 10
                     }]
                 };
@@ -648,7 +650,7 @@
                     datasets: [{
                         label: `${displayLabel} - ${metric}`,
                         data: data.map(x => x.val),
-                        backgroundColor: 'rgb(115, 115, 115)',
+                        backgroundColor: 'rgb(0, 0, 0)',
                         barThickness: 15
                     }]
                 };
