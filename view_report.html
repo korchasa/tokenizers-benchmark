@@ -48,8 +48,9 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 100%;
             margin: 0 auto;
+            padding: 0 20px;
         }
 
         header {
@@ -102,21 +103,32 @@
 
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 20px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         th,
         td {
-            padding: 8px 12px;
-            text-align: left;
+            padding: 6px 8px;
+            text-align: center;
             border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: var(--card);
+            z-index: 1;
+            border-right: 1px solid var(--border);
         }
 
         th {
@@ -126,6 +138,11 @@
             font-weight: 600;
             cursor: pointer;
             color: var(--foreground);
+            z-index: 2;
+        }
+
+        th:first-child {
+            z-index: 3;
         }
 
         th:hover {
@@ -133,38 +150,44 @@
         }
 
         .heatmap-cell {
-            text-align: center;
             font-variant-numeric: tabular-nums;
         }
 
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 600px;
             width: 100%;
         }
 
         .chart-container-large {
             position: relative;
             height: auto;
-            min-height: 800px;
+            min-height: 1200px;
             width: 100%;
         }
 
         @media (min-width: 768px) {
             .chart-container-large {
-                min-height: 1000px;
+                min-height: 1400px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .chart-container-large {
+                min-height: 1600px;
             }
         }
 
         .controls {
             margin-bottom: 15px;
             display: flex;
-            gap: 10px;
+            gap: 15px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         select {
-            padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+            padding: 8px 12px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             background: var(--input);
@@ -177,26 +200,13 @@
             background: var(--primary);
             color: var(--primary-foreground);
             border: none;
-            padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+            padding: 8px 16px;
             border-radius: var(--radius);
             font-family: var(--font-sans);
         }
 
         button:hover {
             opacity: 0.9;
-        }
-
-        /* Utility for efficiency coloring */
-        .eff-high {
-            background-color: rgba(115, 115, 115, 0.2);
-        }
-
-        .eff-med {
-            background-color: rgba(115, 115, 115, 0.15);
-        }
-
-        .eff-low {
-            background-color: rgba(231, 0, 11, 0.2);
         }
 
         .hidden {
@@ -207,17 +217,23 @@
             display: none;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: var(--radius);
-            font-size: 0.8em;
-            background: var(--muted);
+        .text-muted {
             color: var(--muted-foreground);
         }
 
-        .text-muted {
-            color: var(--muted-foreground);
+        .diff-positive {
+            color: #d32f2f;
+            font-size: 0.85em;
+        }
+
+        .diff-negative {
+            color: #388e3c;
+            font-size: 0.85em;
+        }
+
+        .diff-neutral {
+            color: #757575;
+            font-size: 0.85em;
         }
     </style>
 </head>
@@ -242,22 +258,31 @@
 
         <div id="dashboard" class="dashboard">
 
+            <!-- Global Controls -->
+            <div class="card">
+                <div class="controls">
+                    <label style="font-weight: bold;">Metric:</label>
+                    <select id="metricSelect">
+                        <option value="text" selected>Text (Total Tokens)</option>
+                        <option value="word">Word (Tokens/Word)</option>
+                        <option value="char">Character (Tokens/Char)</option>
+                    </select>
+                </div>
+            </div>
 
-
-            <!-- Charts Row 1 -->
+            <!-- Charts -->
             <div class="metrics-grid">
                 <div class="card">
-                    <h2>Language Tax (vs English)</h2>
-                    <p style="font-size: 0.85em; color: #666;">Average token tax across all models. How many more tokens
-                        needed compared to English? (1.0 = Same as English)</p>
+                    <h2>Language Tax (Relative to English)</h2>
+                    <p style="font-size: 0.85em; color: #666;">Ratio of [Selected Metric] vs English. (1.0 = Same as
+                        English)</p>
                     <div class="chart-container-large">
                         <canvas id="taxChart"></canvas>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Efficiency by Language (Chars/Token)</h2>
-                    <p style="font-size: 0.85em; color: #666;">Higher is better. Shows how much information fits in one
-                        token.</p>
+                    <h2>Efficiency by Model</h2>
+                    <p style="font-size: 0.85em; color: #666;">Selected Metric (Lower is Better)</p>
                     <div class="controls">
                         <select id="effLanguageSelect"></select>
                     </div>
@@ -267,15 +292,17 @@
                 </div>
             </div>
 
-            <!-- Main Data Table -->
+            <!-- Efficiency Matrix -->
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2>Efficiency Matrix (Chars per Token)</h2>
+                    <h2>Efficiency Matrix</h2>
                     <div class="controls">
                         <label><input type="checkbox" id="colorScale" checked> Color Scale</label>
                     </div>
                 </div>
-                <div style="overflow-x: auto;">
+                <p style="font-size: 0.85em; color: #666;">Values are [Selected Metric]. Percentages are relative to
+                    English.</p>
+                <div style="overflow-x: auto; max-height: 800px;">
                     <table id="mainTable">
                         <thead></thead>
                         <tbody></tbody>
@@ -283,333 +310,345 @@
                 </div>
             </div>
 
-            <!-- Summary Metrics -->
-            <div class="metrics-grid">
-                <div class="card">
-                    <h2>Overview</h2>
-                    <div id="summaryStats"></div>
-                </div>
-                <div class="card">
-                    <h2>Top Efficient Models (Avg Chars/Token)</h2>
-                    <div id="topModelsList"></div>
-                </div>
-            </div>
-
         </div>
-    </div>
 
-    <script>
-        // Register Chart.js plugins
-        Chart.register(ChartDataLabels);
+        <script>
+            Chart.register(ChartDataLabels);
 
-        let rawData = null;
-        let charts = {};
+            let rawData = null;
+            let processedData = null;
+            let charts = {};
 
-        // --- File Handling ---
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
+            // --- File Handling ---
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
 
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--primary)'; });
-        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = 'var(--border)';
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) handleFile(e.target.files[0]);
-        });
-
-        function handleFile(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    rawData = JSON.parse(e.target.result);
-                    initDashboard(rawData);
-                } catch (err) {
-                    alert('Error parsing JSON: ' + err.message);
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // --- Processing Logic ---
-
-        function cleanLangName(filename) {
-            return filename.replace('.txt', '').charAt(0).toUpperCase() + filename.replace('.txt', '').slice(1);
-        }
-
-        function processData(data) {
-            // Extract unique languages from all models
-            const allLanguages = new Set();
-            data.models.forEach(m => {
-                m.results.forEach(r => {
-                    allLanguages.add(cleanLangName(r.filename));
-                });
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--primary)'; });
+            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--border)'; });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border)';
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
             });
-            const languages = Array.from(allLanguages).sort();
 
-            // Structure: { modelId, modelName, stats: { lang: { tokens, chars, cpt, tax } } }
-            const processed = data.models.map(m => {
-                const modelStats = {};
-                let totalChars = 0;
-                let totalTokens = 0;
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) handleFile(e.target.files[0]);
+            });
 
-                // Find English stats for tax calc
-                const engResult = m.results.find(r => r.filename.includes('english'));
-                const engCpt = engResult ? engResult.characters / engResult.tokens : 0;
+            function handleFile(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        rawData = JSON.parse(e.target.result);
+                        initDashboard(rawData);
+                    } catch (err) {
+                        alert('Error parsing JSON: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
 
-                m.results.forEach(r => {
-                    const lang = cleanLangName(r.filename);
-                    const cpt = r.tokens > 0 ? r.characters / r.tokens : 0;
-                    const tax = engCpt > 0 ? (1 / cpt) / (1 / engCpt) : 0; // Ratio of tokens needed vs English
+            // --- Processing Logic ---
 
-                    modelStats[lang] = {
-                        tokens: r.tokens,
-                        chars: r.characters,
-                        cpt: cpt, // Characters Per Token (Efficiency)
-                        tax: (r.tokens / r.characters) / (engResult.tokens / engResult.characters) // Token Tax
+            function cleanLangName(filename) {
+                return filename.replace('.txt', '').charAt(0).toUpperCase() + filename.replace('.txt', '').slice(1);
+            }
+
+            function processData(data) {
+                const allLanguages = new Set();
+                data.models.forEach(m => {
+                    m.results.forEach(r => {
+                        allLanguages.add(cleanLangName(r.filename));
+                    });
+                });
+                const languages = Array.from(allLanguages).sort();
+
+                // Simplify structure: models array where each model has a results map keyed by language
+                const models = data.models.map(m => {
+                    const resultsMap = {};
+                    m.results.forEach(r => {
+                        const lang = cleanLangName(r.filename);
+                        resultsMap[lang] = {
+                            tokens: r.tokens,
+                            chars: r.characters,
+                            words: r.words || 1, // Fallback if missing
+                        };
+                    });
+
+                    return {
+                        id: m.modelId,
+                        name: m.modelInfo?.name || m.modelId,
+                        results: resultsMap
                     };
-
-                    totalChars += r.characters;
-                    totalTokens += r.tokens;
                 });
 
-                return {
-                    id: m.modelId,
-                    name: m.modelInfo?.name || m.modelId,
-                    provider: m.modelInfo?.organization || 'Unknown',
-                    avgCpt: totalChars / totalTokens,
-                    stats: modelStats
-                };
-            }).sort((a, b) => b.avgCpt - a.avgCpt); // Sort by efficiency descending
+                return { languages, models };
+            }
 
-            return { languages, models: processed };
+            function getMetricValue(result, metric) {
+                if (!result) return 0;
+                if (metric === 'text') return result.tokens;
+                if (metric === 'word') return result.tokens / result.words;
+                if (metric === 'char') return result.tokens / result.chars;
+                return 0;
+            }
+
+            // --- UI Rendering ---
+
+            function initDashboard(data) {
+                processedData = processData(data);
+
+                document.querySelector('.upload-section').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+
+                // Populate dropdowns
+                const langSelect = document.getElementById('effLanguageSelect');
+                langSelect.innerHTML = processedData.languages.map(l => `<option value="${l}">${l}</option>`).join('');
+                if (processedData.languages.includes('Russian')) langSelect.value = 'Russian';
+
+            // Listeners
+            document.getElementById('metricSelect').addEventListener('change', updateAll);
+            document.getElementById('colorScale').addEventListener('change', updateTable);
+            langSelect.addEventListener('change', updateEffChart);
+
+            initCharts();
+            updateTable();
+            updateTaxChart();
+            updateEffChart();
+            }
+
+        function updateAll() {
+            updateTable();
+            updateTaxChart();
+            updateEffChart();
         }
 
-        // --- UI Rendering ---
+            function updateTable() {
+                const { languages, models } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const useColor = document.getElementById('colorScale').checked;
 
-        function initDashboard(data) {
-            const { languages, models } = processData(data);
+                const thead = document.getElementById('mainTable').querySelector('thead');
+                const tbody = document.getElementById('mainTable').querySelector('tbody');
 
-            document.querySelector('.upload-section').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'flex';
-
-            renderSummary(models, languages);
-            renderMainTable(models, languages);
-            initCharts(models, languages);
-        }
-
-        function renderSummary(models, languages) {
-            document.getElementById('summaryStats').innerHTML = `
-            <p><strong>Models Analyzed:</strong> ${models.length}</p>
-            <p><strong>Languages:</strong> ${languages.length}</p>
-            <p><strong>Dataset:</strong> UDHR Parallel Corpus</p>
-        `;
-
-            const top3 = models.slice(0, 5);
-            document.getElementById('topModelsList').innerHTML = `
-            <ol style="padding-left: 20px; margin: 0;">
-                ${top3.map(m => `<li><strong>${m.name}</strong> <span class="text-muted">(${m.avgCpt.toFixed(2)} chars/token)</span></li>`).join('')}
-            </ol>
-        `;
-        }
-
-        function renderMainTable(models, languages) {
-            const thead = document.getElementById('mainTable').querySelector('thead');
-            const tbody = document.getElementById('mainTable').querySelector('tbody');
-
-            // Headers
-            let headerHTML = `<tr>
-            <th style="width: 200px; left: 0; z-index: 2;">Model</th>
-            <th style="width: 80px;">Avg CPT</th>
-            ${languages.map(l => `<th>${l}</th>`).join('')}
-        </tr>`;
-            thead.innerHTML = headerHTML;
-
-            // Rows
-            tbody.innerHTML = models.map(m => {
-                const cells = languages.map(lang => {
-                    const stat = m.stats[lang];
-                    const val = stat ? stat.cpt.toFixed(2) : '-';
-                    // Color scale logic
-                    let bg = '';
-                    if (document.getElementById('colorScale').checked && stat) {
-                        // Scale: 1.5 (destructive) to 4.5 (primary)
-                        const score = Math.max(0, Math.min(1, (stat.cpt - 1.5) / 3.0));
-                        const r = Math.round(231 + (115 - 231) * score);
-                        const g = Math.round(0 + (115 - 0) * score);
-                        const b = Math.round(11 + (115 - 11) * score);
-                        bg = `background-color: rgba(${r}, ${g}, ${b}, 0.2);`;
-                    }
-                    return `<td class="heatmap-cell" style="${bg}" title="${lang}: ${val} chars/token">${val}</td>`;
-                }).join('');
-
-                return `<tr>
-                <td style="position: sticky; left: 0; background: rgb(255, 255, 255); border-right: 1px solid rgb(229, 229, 229); font-weight:500;">${m.name}</td>
-                <td><strong>${m.avgCpt.toFixed(2)}</strong></td>
-                ${cells}
+                // Headers: Languages
+                let headerHTML = `<tr>
+                <th style="width: 200px; min-width: 200px; z-index: 3;">Model</th>
+                <th style="width: 80px;">Avg</th>
+                ${languages.map(l => `<th>${l}</th>`).join('')}
             </tr>`;
-            }).join('');
-        }
+                thead.innerHTML = headerHTML;
 
-        // --- Charting ---
+                // Pre-calculate English values for all models
+                const englishValues = {}; // modelId -> value
+                models.forEach(m => {
+                    englishValues[m.id] = getMetricValue(m.results['English'], metric);
+                });
 
-        function initCharts(models, languages) {
-            // Fill Selectors
-            const langSelect = document.getElementById('effLanguageSelect');
-            langSelect.innerHTML = languages.map(l => `<option value="${l}">${l}</option>`).join('');
-            langSelect.value = 'Russian'; // Default
+                // Find Global Min/Max for gradient
+                let maxRatio = 0;
+                let minRatio = 0;
 
-            // 1. Language Tax Chart (Average across all models)
-            const ctxTax = document.getElementById('taxChart').getContext('2d');
-            charts.tax = new Chart(ctxTax, {
-                type: 'bar',
-                data: { labels: [], datasets: [] },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            display: true,
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: (value) => value.toFixed(2),
-                            font: { size: 10 },
-                            color: 'rgb(10, 10, 10)'
+                languages.forEach(lang => {
+                    models.forEach(m => {
+                        const base = englishValues[m.id];
+                        const val = getMetricValue(m.results[lang], metric);
+                        if (base > 0 && val > 0) {
+                            const ratio = (val - base) / base;
+                            if (ratio > maxRatio) maxRatio = ratio;
+                            if (ratio < minRatio) minRatio = ratio;
                         }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Average Multiplier (1.0 = Same as English)' }
-                        },
-                        y: {
-                            ticks: {
-                                font: { size: 11 },
-                                autoSkip: false
+                    });
+                });
+
+                // Generate Rows: Models
+                tbody.innerHTML = models.map(m => {
+                    // Calculate Avg for this model
+                    let totalMetric = 0;
+                    let count = 0;
+                    languages.forEach(l => {
+                        const v = getMetricValue(m.results[l], metric);
+                        if (v > 0) { totalMetric += v; count++; }
+                    });
+                    const avg = count ? (totalMetric / count) : 0;
+                    const displayAvg = metric === 'text' ? Math.round(avg) : avg.toFixed(3);
+
+                    const cells = languages.map(lang => {
+                        const val = getMetricValue(m.results[lang], metric);
+                        const base = englishValues[m.id];
+
+                        if (!val) return '<td>-</td>';
+
+                        let displayVal = metric === 'text' ? Math.round(val) : val.toFixed(3);
+                        let diffHtml = '';
+                        let bgStyle = '';
+
+                        if (base > 0) {
+                            const diff = (val - base) / base;
+                            const pct = (diff * 100).toFixed(0);
+                            const sign = diff > 0 ? '+' : '';
+                            const diffClass = diff > 0 ? 'diff-positive' : (diff < 0 ? 'diff-negative' : 'diff-neutral');
+
+                            if (lang !== 'English') {
+                                diffHtml = ` <span class="${diffClass}">(${sign}${pct}%)</span>`;
+                            }
+
+                            // Coloring
+                            if (useColor) {
+                                if (lang === 'English') {
+                                    bgStyle = 'background-color: rgb(0, 0, 0); color: white;'; // Black background, white text
+                                } else if (Math.abs(diff) < 0.001) {
+                                    bgStyle = 'background-color: rgb(255, 255, 255);'; // White
+                                } else if (diff < 0) {
+                                    const intensity = Math.min(1, diff / minRatio);
+                                    bgStyle = `background-color: rgba(200, 255, 200, ${intensity});`;
+                                } else {
+                                    const intensity = Math.min(1, diff / maxRatio);
+                                    bgStyle = `background-color: rgba(255, 200, 200, ${intensity});`;
+                                }
+                            }
+                        }
+
+                        return `<td class="heatmap-cell" style="${bgStyle}" title="${m.name} - ${lang}">${displayVal}${diffHtml}</td>`;
+                    }).join('');
+
+                    return `<tr>
+                    <th style="text-align: left;">${m.name}</th>
+                    <td style="font-weight: bold;">${displayAvg}</td>
+                    ${cells}
+                </tr>`;
+                }).join('');
+            }
+
+            function initCharts() {
+                const ctxTax = document.getElementById('taxChart').getContext('2d');
+                charts.tax = new Chart(ctxTax, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                display: true, anchor: 'end', align: 'end',
+                                formatter: (v) => v.toFixed(2),
+                                font: { size: 10 }
                             }
                         }
                     }
-                }
-            });
+                });
 
-            // 2. Efficiency Chart (Comparison across models for one language)
-            const ctxEff = document.getElementById('effChart').getContext('2d');
-            charts.eff = new Chart(ctxEff, {
-                type: 'bar',
-                data: { labels: [], datasets: [] },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            display: true,
-                            anchor: 'end',
-                            align: 'end',
-                            formatter: (value) => value.toFixed(2),
-                            font: { size: 10 },
-                            color: 'rgb(10, 10, 10)'
+                const ctxEff = document.getElementById('effChart').getContext('2d');
+                charts.eff = new Chart(ctxEff, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                display: true, anchor: 'end', align: 'end',
+                                formatter: (v) => v.toFixed(2),
+                                font: { size: 10 }
+                            }
                         }
-                    },
-                    scales: { x: { title: { display: true, text: 'Characters per Token (Higher is Better)' } } }
-                }
-            });
-
-            // Listeners
-            langSelect.addEventListener('change', () => updateEffChart(models));
-            document.getElementById('colorScale').addEventListener('change', () => renderMainTable(models, languages));
-
-            // Initial Render
-            updateTaxChart(models, languages);
-            updateEffChart(models);
-        }
-
-        function updateTaxChart(models, languages) {
-            // Calculate average tax across all models for each language
-            const langData = languages.map(lang => {
-                const validTaxes = models
-                    .map(m => m.stats[lang]?.tax)
-                    .filter(t => t && t > 0);
-
-                const avgTax = validTaxes.length > 0
-                    ? validTaxes.reduce((sum, t) => sum + t, 0) / validTaxes.length
-                    : 0;
-
-                return { lang, tax: avgTax };
-            });
-
-            // Sort from highest to lowest
-            langData.sort((a, b) => b.tax - a.tax);
-
-            const sortedLanguages = langData.map(item => item.lang);
-            const sortedData = langData.map(item => item.tax);
-            const colors = sortedData.map(() => 'rgb(115, 115, 115)');
-
-            charts.tax.data = {
-                labels: sortedLanguages,
-                datasets: [{
-                    label: 'Average Language Tax (x times English tokens)',
-                    data: sortedData,
-                    backgroundColor: colors,
-                    borderWidth: 1,
-                    barThickness: 12,
-                    maxBarThickness: 15
-                }]
-            };
-            charts.tax.update();
-        }
-
-        function updateEffChart(models) {
-            const lang = document.getElementById('effLanguageSelect').value;
-
-            // Sort models by efficiency in this specific language
-            const sorted = [...models].sort((a, b) => (b.stats[lang]?.cpt || 0) - (a.stats[lang]?.cpt || 0)).slice(0, 20); // Top 20
-
-            charts.eff.data = {
-                labels: sorted.map(m => m.name),
-                datasets: [{
-                    label: `${lang} Efficiency (Chars/Token)`,
-                    data: sorted.map(m => m.stats[lang]?.cpt || 0),
-                    backgroundColor: 'rgb(115, 115, 115)'
-                }]
-            };
-            charts.eff.update();
-        }
-
-        // --- Autoload Logic ---
-        window.addEventListener('DOMContentLoaded', () => {
-            fetch('./report.json')
-                .then(response => {
-                    if (!response.ok) throw new Error("Status: " + response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Autoloaded report.json successfully');
-                    initDashboard(data);
-                })
-                .catch(err => {
-                    console.warn('Could not autoload report.json:', err);
-                    // Display a subtle message in the upload zone
-                    const dropZone = document.getElementById('dropZone');
-                    if (dropZone) {
-                        const msg = document.createElement('p');
-                        msg.style.color = 'rgb(113, 113, 113)';
-                        msg.style.fontSize = '0.85em';
-                        msg.style.marginTop = '10px';
-                        msg.textContent = 'Could not auto-load ./report.json (likely due to browser security restrictions). Please drag & drop the file.';
-                        dropZone.appendChild(msg);
                     }
                 });
-        });
+            }
 
-    </script>
+            function updateTaxChart() {
+                const { languages, models } = processedData;
+                const metric = document.getElementById('metricSelect').value;
 
+                // Calculate average tax for each language
+                // Tax = Metric(Lang) / Metric(English)
+                // If metric is Tokens/Text, this is standard tax.
+                // If metric is Tokens/Char, this is also valid.
+
+                const langTax = languages.map(lang => {
+                    let sumTax = 0;
+                    let count = 0;
+
+                    models.forEach(m => {
+                        const base = getMetricValue(m.results['English'], metric);
+                        const val = getMetricValue(m.results[lang], metric);
+                        if (base > 0 && val > 0) {
+                            sumTax += (val / base);
+                            count++;
+                        }
+                    });
+
+                    return { lang, tax: count ? sumTax / count : 0 };
+                }).filter(x => x.tax > 0).sort((a, b) => b.tax - a.tax);
+
+                charts.tax.data = {
+                    labels: langTax.map(x => x.lang),
+                    datasets: [{
+                        label: 'Average Tax vs English',
+                        data: langTax.map(x => x.tax),
+                        backgroundColor: langTax.map(x => x.lang === 'English' ? 'rgb(0, 0, 0)' : 'rgb(115, 115, 115)'),
+                        barThickness: 10
+                    }]
+                };
+                charts.tax.update();
+            }
+
+            function updateEffChart() {
+                const { models } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const lang = document.getElementById('effLanguageSelect').value;
+
+                // Sort models by metric (Low is Good)
+                const data = models.map(m => ({
+                    name: m.name,
+                    val: getMetricValue(m.results[lang], metric)
+                }))
+                    .filter(x => x.val > 0)
+                    .sort((a, b) => a.val - b.val) // Ascending (Lower is better)
+                    .slice(0, 20);
+
+                charts.eff.data = {
+                    labels: data.map(x => x.name),
+                    datasets: [{
+                        label: `${lang} - ${metric}`,
+                        data: data.map(x => x.val),
+                        backgroundColor: 'rgb(115, 115, 115)',
+                        barThickness: 15
+                    }]
+                };
+                charts.eff.options.scales = {
+                    x: { title: { display: true, text: `Tokens per ${metric === 'text' ? 'Text' : (metric === 'word' ? 'Word' : 'Char')}` } }
+                };
+                charts.eff.update();
+            }
+
+            // --- Autoload ---
+            window.addEventListener('DOMContentLoaded', () => {
+                fetch('./report.json')
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.statusText);
+                        return r.json();
+                    })
+                    .then(initDashboard)
+                    .catch(err => {
+                        console.warn('Autoload failed:', err);
+                        const dropZone = document.getElementById('dropZone');
+                        if (dropZone) {
+                            const p = document.createElement('p');
+                            p.style.fontSize = '0.8em';
+                            p.style.color = '#666';
+                            p.style.marginTop = '10px';
+                            p.textContent = '(Autoload failed. Please drag & drop report.json)';
+                            dropZone.appendChild(p);
+                        }
+                    });
+            });
+
+        </script>
 </body>
 
 </html>
