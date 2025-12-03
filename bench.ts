@@ -74,6 +74,7 @@ interface FileResult {
   characters: number;
   words: number;
   tokens: number;
+  createdAt: string;
 }
 
 interface ModelReport {
@@ -90,6 +91,7 @@ interface ModelReport {
 }
 
 interface Report {
+  createdAt: string;
   models: ModelReport[];
   summary: {
     totalModels: number;
@@ -350,7 +352,7 @@ USAGE:
 OPTIONS:
   --help, -h       Show this help
   --models         Show list of all available models
-  --model <id>     Model ID to use (if not specified, reads from models.txt)
+  --model <id>     Model ID(s) to use, comma-separated (if not specified, reads from models.txt)
   --languages      Show list of available languages
   --language <lang> Filter files by language name (e.g., "russian", "english")
   --verbose, -v    Output raw API requests and responses
@@ -362,6 +364,7 @@ PARAMETERS:
 EXAMPLES:
   ./bench.ts ./results/
   ./bench.ts ./results/ --model anthropic/claude-3-haiku:beta
+  ./bench.ts ./results/ --model model1,model2,model3
   ./bench.ts ./results/ --language russian
   ./bench.ts ./results/report.json --verbose
   ./bench.ts --languages
@@ -688,6 +691,7 @@ async function processModel(
   modelId: string,
   apiKey: string,
   verbose: boolean,
+  createdAt: string,
   languageFilter?: string
 ): Promise<ModelReport> {
   console.error("\n==================================================");
@@ -747,7 +751,8 @@ async function processModel(
         filename,
         characters: content.length,
         words: wordCount,
-        tokens: result.tokens
+        tokens: result.tokens,
+        createdAt
       });
       console.error(`✅ ${filename}: ${wordCount} words, ${result.tokens} input tokens`);
       successfulFiles++;
@@ -873,8 +878,13 @@ async function main() {
   // Get list of models to process
   const modelIds: string[] = [];
   if (specifiedModelId) {
-    modelIds.push(specifiedModelId);
-    console.error(`📋 Using specified model: ${specifiedModelId}`);
+    // Split by comma and trim each model ID, filter out empty strings
+    const models = specifiedModelId
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id.length > 0);
+    modelIds.push(...models);
+    console.error(`📋 Using specified model(s): ${models.length} model(s)`);
   } else {
     const modelsFromFile = readModelsFromFile();
     modelIds.push(...modelsFromFile);
@@ -887,10 +897,15 @@ async function main() {
     Deno.exit(1);
   }
 
+  // Create timestamp for report
+  const now = new Date();
+  const createdAt = now.toISOString();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').split('Z')[0];
+
   // Process each model and collect results
   const modelReports: ModelReport[] = [];
   for (const modelId of modelIds) {
-    const report = await processModel(modelId, API_KEY, verbose, languageFilter);
+    const report = await processModel(modelId, API_KEY, verbose, createdAt, languageFilter);
     modelReports.push(report);
   }
 
@@ -906,6 +921,7 @@ async function main() {
 
   // Create report
   const report: Report = {
+    createdAt,
     models: modelReports,
     summary: {
       totalModels,
@@ -921,8 +937,6 @@ async function main() {
 
   // Save report
   try {
-    const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').split('Z')[0];
     const langCount = modelReports.length > 0 ? modelReports[0].stats.totalFiles : 0;
 
     const filename = `${timestamp}_${langCount}langs_${totalModels}models.json`;

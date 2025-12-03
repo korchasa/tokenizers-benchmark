@@ -53,6 +53,12 @@ To use a specific model, use the `--model` option:
 ./bench.ts ./results --model anthropic/claude-3-haiku:beta
 ```
 
+You can also specify multiple models separated by commas:
+
+```bash
+./bench.ts ./results --model anthropic/claude-3-haiku:beta,openai/gpt-4o-mini,meta-llama/llama-3.1-8b-instruct
+```
+
 ### Use models from models.txt
 
 If no model is specified, the script reads model IDs from `models.txt` file (one model per line):
