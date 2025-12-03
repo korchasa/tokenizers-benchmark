@@ -681,7 +681,8 @@
                 try {
                     // 1. Fetch the index file (reports.json)
                     // Looking for reports.json in ./results/ relative to this HTML file
-                    const indexResponse = await fetch('./results/reports.json');
+                    const dateHash = new Date().toISOString().slice(0, 13).replace(/[-T]/g, ''); // YYYYMMDDHH
+                    const indexResponse = await fetch(`./results/reports.json?t=${dateHash}`);
                     if (!indexResponse.ok) throw new Error(`HTTP ${indexResponse.status}: ${indexResponse.statusText}`);
 
                     const indexData = await indexResponse.json();
@@ -702,7 +703,7 @@
                     // 3. Fetch all individual report files
                     // Files are expected to be in the same ./results/ directory
                     const reportPromises = indexData.map(entry =>
-                        fetch(`./results/${entry.filename}`).then(r => {
+                        fetch(`./results/${entry.filename}?t=${dateHash}`).then(r => {
                             if (!r.ok) {
                                 console.warn(`Failed to load ./results/${entry.filename}`);
                                 return null;
