@@ -53,16 +53,19 @@ To use a specific model, use the `--model` option:
 ./bench.ts ./results --model anthropic/claude-3-haiku:beta
 ```
 
-### Use models from models.txt
+### Use models from models.json
 
-If no model is specified, the script reads model IDs from `models.txt` file (one model per line):
+If no model is specified, the script reads model configs from `models.json`. Each entry must have an `id` and a `displayName` (used in reports and the viewer, typically formatted as `Provider (model-name)`):
+
+```json
+[
+  { "id": "anthropic/claude-haiku-4.5", "displayName": "Anthropic (claude-haiku-4.5)" },
+  { "id": "openai/gpt-4.1-nano",        "displayName": "OpenAI (gpt-4.1-nano)" },
+  { "id": "meta-llama/llama-4-scout",   "displayName": "Meta (llama-4-scout)" }
+]
+```
 
 ```bash
-# Create models.txt with model IDs, one per line:
-# anthropic/claude-3-haiku:beta
-# openai/gpt-4o-mini
-# meta-llama/llama-3.1-8b-instruct
-
 ./bench.ts ./results
 ```
 

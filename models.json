@@ -1,0 +1,70 @@
+[
+  {
+    "id": "alibaba/tongyi-deepresearch-30b-a3b",
+    "displayName": "Alibaba (tongyi-deepresearch-30b-a3b)"
+  },
+  {
+    "id": "anthropic/claude-haiku-4.5",
+    "displayName": "Anthropic (claude-haiku-4.5)"
+  },
+  {
+    "id": "deepseek/deepseek-r1-0528-qwen3-8b",
+    "displayName": "DeepSeek (deepseek-r1-0528-qwen3-8b)"
+  },
+  {
+    "id": "deepseek/deepseek-v3.2-exp",
+    "displayName": "DeepSeek (deepseek-v3.2-exp)"
+  },
+  {
+    "id": "google/gemini-2.5-flash-lite",
+    "displayName": "Google (gemini-2.5-flash-lite)"
+  },
+  {
+    "id": "ibm-granite/granite-4.0-h-micro",
+    "displayName": "IBM (granite-4.0-h-micro)"
+  },
+  {
+    "id": "meta-llama/llama-4-scout",
+    "displayName": "Meta (llama-4-scout)"
+  },
+  {
+    "id": "microsoft/phi-3-mini-128k-instruct",
+    "displayName": "Microsoft (phi-3-mini-128k-instruct)"
+  },
+  {
+    "id": "microsoft/phi-4",
+    "displayName": "Microsoft (phi-4)"
+  },
+  {
+    "id": "mistralai/mistral-medium-3.1",
+    "displayName": "Mistral AI (mistral-medium-3.1)"
+  },
+  {
+    "id": "moonshotai/kimi-k2",
+    "displayName": "Moonshot AI (kimi-k2)"
+  },
+  {
+    "id": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    "displayName": "NVIDIA (llama-3.3-nemotron-super-49b-v1.5)"
+  },
+  {
+    "id": "openai/gpt-4.1-nano",
+    "displayName": "OpenAI (gpt-4.1-nano)"
+  },
+  {
+    "id": "openai/gpt-5.1-codex-mini",
+    "displayName": "OpenAI (gpt-5.1-codex-mini)"
+  },
+  {
+    "id": "openai/gpt-oss-120b",
+    "displayName": "OpenAI (gpt-oss-120b)"
+  },
+  {
+    "id": "qwen/qwen3-vl-8b-instruct",
+    "displayName": "Qwen (qwen3-vl-8b-instruct)"
+  },
+  {
+    "id": "x-ai/grok-3-mini",
+    "displayName": "xAI (grok-3-mini)"
+  }
+]
