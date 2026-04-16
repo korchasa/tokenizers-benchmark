@@ -59,13 +59,23 @@
             justify-content: space-between;
             align-items: center;
             gap: 20px;
+            flex-wrap: wrap;
         }
 
         header .controls {
             margin-bottom: 0;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+            flex-wrap: nowrap;
+        }
+
+        header .control-row {
+            display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: nowrap;
         }
 
         h1 {
@@ -214,7 +224,31 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
+        }
+
+        .invisible {
+            visibility: hidden !important;
+        }
+
+        .github-link {
+            position: fixed;
+            bottom: 16px;
+            right: 20px;
+            color: var(--foreground);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            opacity: 0.7;
+            z-index: 10;
+        }
+
+        .github-link:hover {
+            opacity: 1;
         }
 
 
@@ -248,25 +282,32 @@
                 <p class="text-muted">Visualize tokenization efficiency across languages and models</p>
             </div>
             <div class="controls">
-                <label style="font-weight: bold;">Metric:</label>
-                <select id="metricSelect">
-                    <option value="text" selected>Text (Total Tokens)</option>
-                    <option value="word">Word (Tokens/Word)</option>
-                    <option value="char">Character (Tokens/Char)</option>
-                </select>
-                <label style="font-weight: bold; border-left: 1px solid var(--border); padding-left: 15px;">
-                    <input type="checkbox" id="compareMode"> Compare
-                </label>
-                <select id="baselineModelSelect" class="hidden" title="Baseline model"></select>
-                <span id="compareArrow" class="hidden text-muted">vs</span>
-                <select id="compareModelSelect" class="hidden" title="Compare model"></select>
-                <a href="https://github.com/korchasa/tokenizers-benchmark" target="_blank" aria-label="GitHub Repository" style="color: var(--foreground); display: flex; align-items: center; text-decoration: none;">
-                    <svg height="24" width="24" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
-                        <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-                    </svg>
-                </a>
+                <div class="control-row">
+                    <label style="font-weight: bold;">Metric:</label>
+                    <select id="metricSelect">
+                        <option value="text" selected>Text (Total Tokens)</option>
+                        <option value="word">Word (Tokens/Word)</option>
+                        <option value="char">Character (Tokens/Char)</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label style="font-weight: bold;">
+                        <input type="checkbox" id="compareMode"> Compare
+                    </label>
+                </div>
+                <div class="control-row invisible" id="compareRow">
+                    <select id="baselineModelSelect" title="Baseline model"></select>
+                    <span id="compareArrow" class="text-muted">vs</span>
+                    <select id="compareModelSelect" title="Compare model"></select>
+                </div>
             </div>
         </header>
+
+        <a href="https://github.com/korchasa/tokenizers-benchmark" target="_blank" aria-label="GitHub Repository" class="github-link">
+            <svg height="24" width="24" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
+                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
 
         <div id="loading" class="loading">
             <p>Loading report data...</p>
@@ -362,7 +403,7 @@
                         name: m.displayName || m.modelInfo?.name || m.modelId,
                         results: resultsMap
                     };
-                });
+                }).sort((a, b) => a.name.localeCompare(b.name));
 
                 return { languages, models };
             }
@@ -434,16 +475,18 @@
 
             function onCompareModeChange() {
                 const on = isCompareMode();
-                const toggle = (id, show) => {
+                const toggleDisplay = (id, show) => {
                     const el = document.getElementById(id);
                     if (show) el.classList.remove('hidden'); else el.classList.add('hidden');
                 };
-                toggle('baselineModelSelect', on);
-                toggle('compareModelSelect', on);
-                toggle('compareArrow', on);
+                const toggleVisibility = (id, show) => {
+                    const el = document.getElementById(id);
+                    if (show) el.classList.remove('invisible'); else el.classList.add('invisible');
+                };
+                toggleVisibility('compareRow', on);
                 // Hide per-card selectors that become redundant in compare mode
-                toggle('taxModelSelect', !on);
-                toggle('effLanguageSelect', !on);
+                toggleDisplay('taxModelSelect', !on);
+                toggleDisplay('effLanguageSelect', !on);
                 updateAll();
             }
 
