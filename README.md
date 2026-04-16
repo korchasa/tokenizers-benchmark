@@ -38,25 +38,25 @@ The script can be run directly with Deno. The shebang in `bench.ts` allows it to
 The script requires an output directory where results will be saved:
 
 ```bash
-./bench.ts ./results
+./bench.ts ./public/results
 ```
 
 The script will:
-1. Create a new JSON file with timestamp name in `./results/` (e.g., `2025-12-02_10-43-01_53langs_1models.json`).
-2. Update (or create) `./results/reports.json` which serves as an index for the viewer.
+1. Create a new JSON file with timestamp name in `./public/results/` (e.g., `2025-12-02_10-43-01_53langs_1models.json`).
+2. Update (or create) `./public/results/reports.json` which serves as an index for the viewer.
 
 ### Specify a model
 
 To use a specific model, use the `--model` option:
 
 ```bash
-./bench.ts ./results --model anthropic/claude-3-haiku:beta
+./bench.ts ./public/results --model anthropic/claude-3-haiku:beta
 ```
 
 You can also specify multiple models separated by commas:
 
 ```bash
-./bench.ts ./results --model anthropic/claude-3-haiku:beta,openai/gpt-4o-mini,meta-llama/llama-3.1-8b-instruct
+./bench.ts ./public/results --model anthropic/claude-3-haiku:beta,openai/gpt-4o-mini,meta-llama/llama-3.1-8b-instruct
 ```
 
 ### Use models from models.json
@@ -72,7 +72,7 @@ If no model is specified, the script reads model configs from `models.json`. Eac
 ```
 
 ```bash
-./bench.ts ./results
+./bench.ts ./public/results
 ```
 
 ### Filter by language
@@ -80,7 +80,7 @@ If no model is specified, the script reads model configs from `models.json`. Eac
 To process only files for a specific language, use the `--language` option:
 
 ```bash
-./bench.ts ./results --language russian
+./bench.ts ./public/results --language russian
 ```
 
 ### View help
@@ -105,15 +105,15 @@ To process only files for a specific language, use the `--language` option:
 
 ### Detailed output with raw API requests and responses
 ```bash
-./bench.ts ./results --model anthropic/claude-3-haiku:beta --verbose
+./bench.ts ./public/results --model anthropic/claude-3-haiku:beta --verbose
 ```
 
 ## Output Data
 
 The script uses an accumulated data approach:
 
-1. **Individual Run Files**: Each run creates a unique JSON file in the output directory (e.g., `results/2023-12-01_10-00-00_50langs_10models.json`). This file contains full details of the run.
-2. **Index File**: `results/reports.json` is updated with a link to the new file.
+1. **Individual Run Files**: Each run creates a unique JSON file in the output directory (e.g., `public/results/2023-12-01_10-00-00_50langs_10models.json`). This file contains full details of the run.
+2. **Index File**: `public/results/reports.json` is updated with a link to the new file.
 
 ### Viewing Results
 

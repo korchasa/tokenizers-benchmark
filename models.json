@@ -8,6 +8,10 @@
     "displayName": "Anthropic (claude-haiku-4.5)"
   },
   {
+    "id": "anthropic/claude-opus-4.7",
+    "displayName": "Anthropic (claude-opus-4.7)"
+  },
+  {
     "id": "deepseek/deepseek-r1-0528-qwen3-8b",
     "displayName": "DeepSeek (deepseek-r1-0528-qwen3-8b)"
   },
