@@ -68,5 +68,61 @@
       "totalTokens": 541359,
       "totalCost": 1.749578
     }
+  },
+  {
+    "filename": "2026-04-16_22-29-29-083_1langs_18models.json",
+    "timestamp": "2026-04-16_22-29-29-083",
+    "summary": {
+      "totalModels": 18,
+      "processedModels": 16,
+      "modelsWithErrors": 2,
+      "totalFiles": 16,
+      "totalSuccessfulFiles": 16,
+      "totalErrors": 2,
+      "totalTokens": 54288,
+      "totalCost": 0.03776881900000001
+    }
+  },
+  {
+    "filename": "2026-04-16_22-31-54-600_1langs_2models.json",
+    "timestamp": "2026-04-16_22-31-54-600",
+    "summary": {
+      "totalModels": 2,
+      "processedModels": 2,
+      "modelsWithErrors": 0,
+      "totalFiles": 2,
+      "totalSuccessfulFiles": 2,
+      "totalErrors": 0,
+      "totalTokens": 6559,
+      "totalCost": 0.00302184
+    }
+  },
+  {
+    "filename": "2026-04-16_22-33-07-617_54langs_2models.json",
+    "timestamp": "2026-04-16_22-33-07-617",
+    "summary": {
+      "totalModels": 2,
+      "processedModels": 2,
+      "modelsWithErrors": 0,
+      "totalFiles": 108,
+      "totalSuccessfulFiles": 108,
+      "totalErrors": 0,
+      "totalTokens": 454907,
+      "totalCost": 0.20309134
+    }
+  },
+  {
+    "filename": "2026-04-16_22-43-11-576_54langs_1models.json",
+    "timestamp": "2026-04-16_22-43-11-576",
+    "summary": {
+      "totalModels": 1,
+      "processedModels": 1,
+      "modelsWithErrors": 0,
+      "totalFiles": 54,
+      "totalSuccessfulFiles": 54,
+      "totalErrors": 0,
+      "totalTokens": 249508,
+      "totalCost": 1.2689399999999997
+    }
   }
 ]

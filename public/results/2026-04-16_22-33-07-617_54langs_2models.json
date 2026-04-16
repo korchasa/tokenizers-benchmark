@@ -1,0 +1,894 @@
+{
+  "createdAt": "2026-04-16T22:33:07.617Z",
+  "models": [
+    {
+      "modelId": "deepseek/deepseek-r1-distill-qwen-32b",
+      "displayName": "DeepSeek (deepseek-r1-distill-qwen-32b)",
+      "modelInfo": {
+        "id": "deepseek/deepseek-r1-distill-qwen-32b",
+        "canonical_slug": "deepseek/deepseek-r1-distill-qwen-32b",
+        "hugging_face_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "name": "DeepSeek: R1 Distill Qwen 32B",
+        "created": 1738194830,
+        "description": "DeepSeek R1 Distill Qwen 32B is a distilled large language model based on [Qwen 2.5 32B](https://huggingface.co/Qwen/Qwen2.5-32B), using outputs from [DeepSeek R1](/deepseek/deepseek-r1). It outperforms OpenAI's o1-mini across various benchmarks, achieving new...",
+        "context_length": 32768,
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Qwen",
+          "instruct_type": "deepseek-r1"
+        },
+        "pricing": {
+          "prompt": "0.00000029",
+          "completion": "0.00000029"
+        },
+        "top_provider": {
+          "context_length": 32768,
+          "max_completion_tokens": 32768,
+          "is_moderated": false
+        },
+        "per_request_limits": null,
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logprobs",
+          "max_tokens",
+          "presence_penalty",
+          "reasoning",
+          "response_format",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "top_logprobs",
+          "top_p"
+        ],
+        "default_parameters": {},
+        "knowledge_cutoff": "2024-07-31",
+        "expiration_date": null,
+        "links": {
+          "details": "/api/v1/models/deepseek/deepseek-r1-distill-qwen-32b/endpoints"
+        }
+      },
+      "results": [
+        {
+          "filename": "achinese.txt",
+          "characters": 12827,
+          "words": 1935,
+          "tokens": 4827,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "afrikaans.txt",
+          "characters": 10336,
+          "words": 1685,
+          "tokens": 3353,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "arabic-egyptian.txt",
+          "characters": 7646,
+          "words": 1349,
+          "tokens": 2801,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "baluchi.txt",
+          "characters": 13542,
+          "words": 1816,
+          "tokens": 4706,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "braj.txt",
+          "characters": 11279,
+          "words": 1796,
+          "tokens": 2973,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "buginese.txt",
+          "characters": 13324,
+          "words": 1829,
+          "tokens": 4800,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "bulgarian.txt",
+          "characters": 11373,
+          "words": 1766,
+          "tokens": 4724,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "catalan.txt",
+          "characters": 11067,
+          "words": 1843,
+          "tokens": 3486,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "chinese.txt",
+          "characters": 3006,
+          "words": 188,
+          "tokens": 1824,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "code.txt",
+          "characters": 10666,
+          "words": 1500,
+          "tokens": 3210,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "czech.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 4569,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "dansk.txt",
+          "characters": 12013,
+          "words": 1795,
+          "tokens": 3885,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "dutch.txt",
+          "characters": 12773,
+          "words": 1966,
+          "tokens": 3777,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "english.txt",
+          "characters": 10638,
+          "words": 1747,
+          "tokens": 2042,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "esperanto.txt",
+          "characters": 10013,
+          "words": 1616,
+          "tokens": 3804,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "filipino.txt",
+          "characters": 13391,
+          "words": 2116,
+          "tokens": 4740,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "finnish.txt",
+          "characters": 12225,
+          "words": 1402,
+          "tokens": 4741,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "french.txt",
+          "characters": 11896,
+          "words": 1943,
+          "tokens": 3119,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "frisian.txt",
+          "characters": 12126,
+          "words": 2019,
+          "tokens": 4500,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "german.txt",
+          "characters": 11930,
+          "words": 1642,
+          "tokens": 3300,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "greek.txt",
+          "characters": 12426,
+          "words": 1910,
+          "tokens": 10570,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hebrew.txt",
+          "characters": 7258,
+          "words": 1278,
+          "tokens": 2805,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hindi.txt",
+          "characters": 11464,
+          "words": 2145,
+          "tokens": 10615,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hungarian.txt",
+          "characters": 12030,
+          "words": 1539,
+          "tokens": 5022,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "indonesian.txt",
+          "characters": 12504,
+          "words": 1725,
+          "tokens": 3817,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "italian.txt",
+          "characters": 12649,
+          "words": 1946,
+          "tokens": 3529,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "japanese.txt",
+          "characters": 4200,
+          "words": 109,
+          "tokens": 2918,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "javanese-suriname.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 5212,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "javanese.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 5212,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "kachin.txt",
+          "characters": 4716,
+          "words": 1185,
+          "tokens": 2940,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "latin.txt",
+          "characters": 9984,
+          "words": 1364,
+          "tokens": 2935,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "latvian.txt",
+          "characters": 10513,
+          "words": 1389,
+          "tokens": 4913,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "luxembourgish.txt",
+          "characters": 12353,
+          "words": 2014,
+          "tokens": 4622,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "malayalam.txt",
+          "characters": 12583,
+          "words": 1682,
+          "tokens": 3902,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "minangkabau.txt",
+          "characters": 12069,
+          "words": 1745,
+          "tokens": 4188,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "norwegian-nynorsk.txt",
+          "characters": 10006,
+          "words": 1703,
+          "tokens": 3338,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "occitan.txt",
+          "characters": 8741,
+          "words": 1592,
+          "tokens": 3287,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "pampanga.txt",
+          "characters": 14063,
+          "words": 2186,
+          "tokens": 4599,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "pemon.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 4569,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "persian-farsi.txt",
+          "characters": 9732,
+          "words": 1584,
+          "tokens": 4111,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "plain-english.txt",
+          "characters": 5746,
+          "words": 1086,
+          "tokens": 1225,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "polish.txt",
+          "characters": 11586,
+          "words": 1580,
+          "tokens": 4008,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "portuguese.txt",
+          "characters": 11389,
+          "words": 1871,
+          "tokens": 3157,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "romanian.txt",
+          "characters": 11904,
+          "words": 1814,
+          "tokens": 4104,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "russian.txt",
+          "characters": 11799,
+          "words": 1605,
+          "tokens": 3513,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "slovenian.txt",
+          "characters": 10081,
+          "words": 1499,
+          "tokens": 4581,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "spanish.txt",
+          "characters": 11965,
+          "words": 1927,
+          "tokens": 2975,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "sundanese.txt",
+          "characters": 13244,
+          "words": 1968,
+          "tokens": 4881,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "swedish.txt",
+          "characters": 11654,
+          "words": 1691,
+          "tokens": 3905,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "tamil.txt",
+          "characters": 13720,
+          "words": 1262,
+          "tokens": 14993,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "ukrainian.txt",
+          "characters": 10686,
+          "words": 1578,
+          "tokens": 5152,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "urdu.txt",
+          "characters": 10138,
+          "words": 2239,
+          "tokens": 6510,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "wolaitta.txt",
+          "characters": 12159,
+          "words": 2583,
+          "tokens": 5501,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "yiddish.txt",
+          "characters": 11749,
+          "words": 1775,
+          "tokens": 8838,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        }
+      ],
+      "stats": {
+        "totalFiles": 54,
+        "successfulFiles": 54,
+        "totalTokens": 241628,
+        "totalEstimatedCost": 0.07032268000000003,
+        "errors": []
+      }
+    },
+    {
+      "modelId": "microsoft/wizardlm-2-8x22b",
+      "displayName": "Microsoft (wizardlm-2-8x22b)",
+      "modelInfo": {
+        "id": "microsoft/wizardlm-2-8x22b",
+        "canonical_slug": "microsoft/wizardlm-2-8x22b",
+        "hugging_face_id": "microsoft/WizardLM-2-8x22B",
+        "name": "WizardLM-2 8x22B",
+        "created": 1713225600,
+        "description": "WizardLM-2 8x22B is Microsoft AI's most advanced Wizard model. It demonstrates highly competitive performance compared to leading proprietary models, and it consistently outperforms all existing state-of-the-art opensource models. It is...",
+        "context_length": 65535,
+        "architecture": {
+          "modality": "text->text",
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "tokenizer": "Mistral",
+          "instruct_type": "vicuna"
+        },
+        "pricing": {
+          "prompt": "0.00000062",
+          "completion": "0.00000062"
+        },
+        "top_provider": {
+          "context_length": 65535,
+          "max_completion_tokens": 8000,
+          "is_moderated": false
+        },
+        "per_request_limits": null,
+        "supported_parameters": [
+          "frequency_penalty",
+          "max_tokens",
+          "presence_penalty",
+          "repetition_penalty",
+          "seed",
+          "stop",
+          "temperature",
+          "top_k",
+          "top_p"
+        ],
+        "default_parameters": {},
+        "knowledge_cutoff": "2024-04-30",
+        "expiration_date": null,
+        "links": {
+          "details": "/api/v1/models/microsoft/wizardlm-2-8x22b/endpoints"
+        }
+      },
+      "results": [
+        {
+          "filename": "achinese.txt",
+          "characters": 12827,
+          "words": 1935,
+          "tokens": 4693,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "afrikaans.txt",
+          "characters": 10336,
+          "words": 1685,
+          "tokens": 3164,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "arabic-egyptian.txt",
+          "characters": 7646,
+          "words": 1349,
+          "tokens": 2807,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "baluchi.txt",
+          "characters": 13542,
+          "words": 1816,
+          "tokens": 4400,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "braj.txt",
+          "characters": 11279,
+          "words": 1796,
+          "tokens": 2761,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "buginese.txt",
+          "characters": 13324,
+          "words": 1829,
+          "tokens": 4779,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "bulgarian.txt",
+          "characters": 11373,
+          "words": 1766,
+          "tokens": 4148,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "catalan.txt",
+          "characters": 11067,
+          "words": 1843,
+          "tokens": 3326,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "chinese.txt",
+          "characters": 3006,
+          "words": 188,
+          "tokens": 1699,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "code.txt",
+          "characters": 10666,
+          "words": 1500,
+          "tokens": 3349,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "czech.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3642,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "dansk.txt",
+          "characters": 12013,
+          "words": 1795,
+          "tokens": 3848,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "dutch.txt",
+          "characters": 12773,
+          "words": 1966,
+          "tokens": 3457,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "english.txt",
+          "characters": 10638,
+          "words": 1747,
+          "tokens": 2037,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "esperanto.txt",
+          "characters": 10013,
+          "words": 1616,
+          "tokens": 3656,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "filipino.txt",
+          "characters": 13391,
+          "words": 2116,
+          "tokens": 4537,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "finnish.txt",
+          "characters": 12225,
+          "words": 1402,
+          "tokens": 4467,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "french.txt",
+          "characters": 11896,
+          "words": 1943,
+          "tokens": 3031,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "frisian.txt",
+          "characters": 12126,
+          "words": 2019,
+          "tokens": 4360,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "german.txt",
+          "characters": 11930,
+          "words": 1642,
+          "tokens": 3053,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "greek.txt",
+          "characters": 12426,
+          "words": 1910,
+          "tokens": 5671,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hebrew.txt",
+          "characters": 7258,
+          "words": 1278,
+          "tokens": 3415,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hindi.txt",
+          "characters": 11464,
+          "words": 2145,
+          "tokens": 6200,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "hungarian.txt",
+          "characters": 12030,
+          "words": 1539,
+          "tokens": 4663,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "indonesian.txt",
+          "characters": 12504,
+          "words": 1725,
+          "tokens": 3166,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "italian.txt",
+          "characters": 12649,
+          "words": 1946,
+          "tokens": 3281,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "japanese.txt",
+          "characters": 4200,
+          "words": 109,
+          "tokens": 2738,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "javanese-suriname.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 5007,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "javanese.txt",
+          "characters": 14679,
+          "words": 2106,
+          "tokens": 5007,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "kachin.txt",
+          "characters": 4716,
+          "words": 1185,
+          "tokens": 3086,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "latin.txt",
+          "characters": 9984,
+          "words": 1364,
+          "tokens": 2872,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "latvian.txt",
+          "characters": 10513,
+          "words": 1389,
+          "tokens": 4784,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "luxembourgish.txt",
+          "characters": 12353,
+          "words": 2014,
+          "tokens": 4521,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "malayalam.txt",
+          "characters": 12583,
+          "words": 1682,
+          "tokens": 3371,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "minangkabau.txt",
+          "characters": 12069,
+          "words": 1745,
+          "tokens": 3861,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "norwegian-nynorsk.txt",
+          "characters": 10006,
+          "words": 1703,
+          "tokens": 3338,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "occitan.txt",
+          "characters": 8741,
+          "words": 1592,
+          "tokens": 3245,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "pampanga.txt",
+          "characters": 14063,
+          "words": 2186,
+          "tokens": 4531,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "pemon.txt",
+          "characters": 9820,
+          "words": 1501,
+          "tokens": 3642,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "persian-farsi.txt",
+          "characters": 9732,
+          "words": 1584,
+          "tokens": 4134,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "plain-english.txt",
+          "characters": 5746,
+          "words": 1086,
+          "tokens": 1257,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "polish.txt",
+          "characters": 11586,
+          "words": 1580,
+          "tokens": 3723,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "portuguese.txt",
+          "characters": 11389,
+          "words": 1871,
+          "tokens": 2906,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "romanian.txt",
+          "characters": 11904,
+          "words": 1814,
+          "tokens": 4076,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "russian.txt",
+          "characters": 11799,
+          "words": 1605,
+          "tokens": 3099,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "slovenian.txt",
+          "characters": 10081,
+          "words": 1499,
+          "tokens": 4045,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "spanish.txt",
+          "characters": 11965,
+          "words": 1927,
+          "tokens": 2869,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "sundanese.txt",
+          "characters": 13244,
+          "words": 1968,
+          "tokens": 4607,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "swedish.txt",
+          "characters": 11654,
+          "words": 1691,
+          "tokens": 3793,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "tamil.txt",
+          "characters": 13720,
+          "words": 1262,
+          "tokens": 7422,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "ukrainian.txt",
+          "characters": 10686,
+          "words": 1578,
+          "tokens": 4417,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "urdu.txt",
+          "characters": 10138,
+          "words": 2239,
+          "tokens": 4745,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "wolaitta.txt",
+          "characters": 12159,
+          "words": 2583,
+          "tokens": 5514,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        },
+        {
+          "filename": "yiddish.txt",
+          "characters": 11749,
+          "words": 1775,
+          "tokens": 9059,
+          "createdAt": "2026-04-16T22:33:07.617Z"
+        }
+      ],
+      "stats": {
+        "totalFiles": 54,
+        "successfulFiles": 54,
+        "totalTokens": 213279,
+        "totalEstimatedCost": 0.13276865999999998,
+        "errors": []
+      }
+    }
+  ],
+  "summary": {
+    "totalModels": 2,
+    "processedModels": 2,
+    "modelsWithErrors": 0,
+    "totalFiles": 108,
+    "totalSuccessfulFiles": 108,
+    "totalErrors": 0,
+    "totalTokens": 454907,
+    "totalCost": 0.20309134
+  }
+}

@@ -8,12 +8,16 @@
     "displayName": "Anthropic (claude-haiku-4.5)"
   },
   {
+    "id": "anthropic/claude-opus-4.6",
+    "displayName": "Anthropic (claude-opus-4.6)"
+  },
+  {
     "id": "anthropic/claude-opus-4.7",
     "displayName": "Anthropic (claude-opus-4.7)"
   },
   {
-    "id": "deepseek/deepseek-r1-0528-qwen3-8b",
-    "displayName": "DeepSeek (deepseek-r1-0528-qwen3-8b)"
+    "id": "deepseek/deepseek-r1-distill-qwen-32b",
+    "displayName": "DeepSeek (deepseek-r1-distill-qwen-32b)"
   },
   {
     "id": "deepseek/deepseek-v3.2-exp",
@@ -32,8 +36,8 @@
     "displayName": "Meta (llama-4-scout)"
   },
   {
-    "id": "microsoft/phi-3-mini-128k-instruct",
-    "displayName": "Microsoft (phi-3-mini-128k-instruct)"
+    "id": "microsoft/wizardlm-2-8x22b",
+    "displayName": "Microsoft (wizardlm-2-8x22b)"
   },
   {
     "id": "microsoft/phi-4",
