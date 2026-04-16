@@ -254,6 +254,12 @@
                     <option value="word">Word (Tokens/Word)</option>
                     <option value="char">Character (Tokens/Char)</option>
                 </select>
+                <label style="font-weight: bold; border-left: 1px solid var(--border); padding-left: 15px;">
+                    <input type="checkbox" id="compareMode"> Compare
+                </label>
+                <select id="baselineModelSelect" class="hidden" title="Baseline model"></select>
+                <span id="compareArrow" class="hidden text-muted">vs</span>
+                <select id="compareModelSelect" class="hidden" title="Compare model"></select>
                 <a href="https://github.com/korchasa/tokenizers-benchmark" target="_blank" aria-label="GitHub Repository" style="color: var(--foreground); display: flex; align-items: center; text-decoration: none;">
                     <svg height="24" width="24" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
                         <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
@@ -387,16 +393,58 @@
                 modelSelect.innerHTML = '<option value="average" selected>Average</option>' +
                     processedData.models.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
 
+                // Populate compare-mode selects with model options (no 'average')
+                const modelOptionsHTML = processedData.models.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                const baselineSelect = document.getElementById('baselineModelSelect');
+                const compareSelect = document.getElementById('compareModelSelect');
+                baselineSelect.innerHTML = modelOptionsHTML;
+                compareSelect.innerHTML = modelOptionsHTML;
+                // Default: pick two distinct models if available
+                if (processedData.models.length >= 2) {
+                    baselineSelect.value = processedData.models[0].id;
+                    compareSelect.value = processedData.models[1].id;
+                }
+
             // Listeners
             document.getElementById('metricSelect').addEventListener('change', updateAll);
             document.getElementById('colorScale').addEventListener('change', updateTable);
             langSelect.addEventListener('change', updateEffChart);
             modelSelect.addEventListener('change', updateTaxChart);
+            document.getElementById('compareMode').addEventListener('change', onCompareModeChange);
+            baselineSelect.addEventListener('change', updateAll);
+            compareSelect.addEventListener('change', updateAll);
 
             initCharts();
             updateTable();
             updateTaxChart();
             updateEffChart();
+            }
+
+            function isCompareMode() {
+                return document.getElementById('compareMode').checked;
+            }
+
+            function getComparePair() {
+                const baselineId = document.getElementById('baselineModelSelect').value;
+                const compareId = document.getElementById('compareModelSelect').value;
+                const baseline = processedData.models.find(m => m.id === baselineId);
+                const compare = processedData.models.find(m => m.id === compareId);
+                return { baseline, compare };
+            }
+
+            function onCompareModeChange() {
+                const on = isCompareMode();
+                const toggle = (id, show) => {
+                    const el = document.getElementById(id);
+                    if (show) el.classList.remove('hidden'); else el.classList.add('hidden');
+                };
+                toggle('baselineModelSelect', on);
+                toggle('compareModelSelect', on);
+                toggle('compareArrow', on);
+                // Hide per-card selectors that become redundant in compare mode
+                toggle('taxModelSelect', !on);
+                toggle('effLanguageSelect', !on);
+                updateAll();
             }
 
         function updateAll() {
@@ -406,6 +454,7 @@
         }
 
             function updateTable() {
+                if (isCompareMode()) return updateTableCompare();
                 const { languages, models } = processedData;
                 const metric = document.getElementById('metricSelect').value;
                 const useColor = document.getElementById('colorScale').checked;
@@ -523,6 +572,109 @@
                 }).join('');
             }
 
+            function updateTableCompare() {
+                const { languages } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const useColor = document.getElementById('colorScale').checked;
+                const { baseline, compare } = getComparePair();
+
+                const thead = document.getElementById('mainTable').querySelector('thead');
+                const tbody = document.getElementById('mainTable').querySelector('tbody');
+
+                let headerHTML = `<tr>
+                <th style="width: 200px; min-width: 200px; z-index: 3;">Model</th>
+                <th style="width: 80px;">Avg</th>
+                ${languages.map(l => `<th>${l}</th>`).join('')}
+            </tr>`;
+                thead.innerHTML = headerHTML;
+
+                if (!baseline || !compare) {
+                    tbody.innerHTML = `<tr><td colspan="${languages.length + 2}">Select two models to compare.</td></tr>`;
+                    return;
+                }
+
+                const digits = metric === 'text' ? 0 : (metric === 'word' ? 1 : 3);
+
+                const avgOf = (m) => {
+                    let total = 0, count = 0;
+                    languages.forEach(l => {
+                        const v = getMetricValue(m.results[l], metric);
+                        if (v > 0) { total += v; count++; }
+                    });
+                    return count ? total / count : 0;
+                };
+
+                const renderRow = (m, highlight) => {
+                    const avg = avgOf(m);
+                    const cells = languages.map(lang => {
+                        const val = getMetricValue(m.results[lang], metric);
+                        if (!val) return '<td>-</td>';
+                        return `<td class="heatmap-cell" title="${m.name} - ${lang}">${val.toFixed(digits)}</td>`;
+                    }).join('');
+                    const bg = highlight ? 'background-color: rgb(245, 245, 245);' : '';
+                    return `<tr style="${bg}">
+                    <th style="text-align: left;">${m.name}${highlight ? ' (baseline)' : ''}</th>
+                    <td style="font-weight: bold;">${avg.toFixed(digits)}</td>
+                    ${cells}
+                </tr>`;
+                };
+
+                // Precompute diff range for coloring (same scheme as original)
+                let maxRatio = 0, minRatio = 0;
+                languages.forEach(lang => {
+                    const b = getMetricValue(baseline.results[lang], metric);
+                    const c = getMetricValue(compare.results[lang], metric);
+                    if (b > 0 && c > 0) {
+                        const r = (c - b) / b;
+                        if (r > maxRatio) maxRatio = r;
+                        if (r < minRatio) minRatio = r;
+                    }
+                });
+
+                const diffCells = languages.map(lang => {
+                    const b = getMetricValue(baseline.results[lang], metric);
+                    const c = getMetricValue(compare.results[lang], metric);
+                    if (!b || !c) return '<td>-</td>';
+                    const diff = (c - b) / b;
+                    const pct = (diff * 100).toFixed(1);
+                    const sign = diff > 0 ? '+' : '';
+                    let bgStyle = '';
+                    if (useColor) {
+                        if (Math.abs(diff) < 0.001) {
+                            bgStyle = 'background-color: rgb(255, 255, 255);';
+                        } else if (diff < 0) {
+                            const intensity = minRatio < 0 ? Math.min(1, diff / minRatio) : 0;
+                            bgStyle = `background-color: rgba(200, 255, 200, ${intensity});`;
+                        } else {
+                            let intensity;
+                            if (diff <= 1.0) intensity = 0.6 * (diff / 1.0);
+                            else {
+                                const range = Math.max(maxRatio - 1.0, 0.0001);
+                                intensity = 0.6 + 0.4 * ((diff - 1.0) / range);
+                            }
+                            intensity = Math.max(0, Math.min(1, intensity));
+                            bgStyle = `background-color: rgba(255, 0, 0, ${intensity});`;
+                        }
+                    }
+                    return `<td class="heatmap-cell" style="${bgStyle}" title="${lang}: ${c.toFixed(digits)} vs ${b.toFixed(digits)}">${sign}${pct}%</td>`;
+                }).join('');
+
+                const avgB = avgOf(baseline);
+                const avgC = avgOf(compare);
+                const avgDiffPct = avgB > 0 ? (((avgC - avgB) / avgB) * 100).toFixed(1) : '-';
+                const avgSign = avgDiffPct !== '-' && parseFloat(avgDiffPct) > 0 ? '+' : '';
+
+                tbody.innerHTML = [
+                    renderRow(baseline, true),
+                    renderRow(compare, false),
+                    `<tr style="border-top: 2px solid var(--border);">
+                        <th style="text-align: left;">Δ (compare vs baseline)</th>
+                        <td style="font-weight: bold;">${avgSign}${avgDiffPct}%</td>
+                        ${diffCells}
+                    </tr>`
+                ].join('');
+            }
+
             function initCharts() {
                 const ctxTax = document.getElementById('taxChart').getContext('2d');
                 charts.tax = new Chart(ctxTax, {
@@ -572,6 +724,7 @@
             }
 
             function updateTaxChart() {
+                if (isCompareMode()) return updateTaxChartCompare();
                 const { languages, models } = processedData;
                 const metric = document.getElementById('metricSelect').value;
                 const selectedModelId = document.getElementById('taxModelSelect').value;
@@ -616,11 +769,81 @@
                         barThickness: 15
                     }]
                 };
+                charts.tax.options.plugins.legend = { display: false };
+                charts.tax.options.plugins.datalabels = {
+                    display: true, anchor: 'end', align: 'end',
+                    formatter: (v) => {
+                        const pct = ((v - 1) * 100).toFixed(0);
+                        return (pct > 0 ? '+' : '') + pct + '%';
+                    },
+                    color: '#000000',
+                    font: { size: 12, weight: 'bold' }
+                };
                 charts.tax.update();
                 charts.tax.resize(); // Explicit resize
             }
 
+            function updateTaxChartCompare() {
+                const { languages } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const { baseline, compare } = getComparePair();
+
+                const container = document.getElementById('taxChart').parentElement;
+
+                if (!baseline || !compare) {
+                    charts.tax.data = { labels: [], datasets: [] };
+                    charts.tax.update();
+                    return;
+                }
+
+                const taxOf = (m, lang) => {
+                    const base = getMetricValue(m.results['English'], metric);
+                    const val = getMetricValue(m.results[lang], metric);
+                    return (base > 0 && val > 0) ? val / base : null;
+                };
+
+                // Keep only languages present in both and sort by baseline tax desc
+                const rows = languages
+                    .map(lang => ({ lang, b: taxOf(baseline, lang), c: taxOf(compare, lang) }))
+                    .filter(x => x.b !== null && x.c !== null)
+                    .sort((a, b) => b.b - a.b);
+
+                const newHeight = Math.max(400, rows.length * 32 + 50);
+                container.style.height = `${newHeight}px`;
+
+                charts.tax.data = {
+                    labels: rows.map(x => x.lang),
+                    datasets: [
+                        {
+                            label: `${baseline.name} (baseline)`,
+                            data: rows.map(x => x.b),
+                            backgroundColor: 'rgb(115, 115, 115)',
+                            barThickness: 10
+                        },
+                        {
+                            label: `${compare.name}`,
+                            data: rows.map(x => x.c),
+                            backgroundColor: 'rgb(0, 0, 0)',
+                            barThickness: 10
+                        }
+                    ]
+                };
+                charts.tax.options.plugins.legend = { display: true };
+                charts.tax.options.plugins.datalabels = {
+                    display: true, anchor: 'end', align: 'end',
+                    formatter: (v) => {
+                        const pct = ((v - 1) * 100).toFixed(0);
+                        return (pct > 0 ? '+' : '') + pct + '%';
+                    },
+                    color: '#000000',
+                    font: { size: 10, weight: 'bold' }
+                };
+                charts.tax.update();
+                charts.tax.resize();
+            }
+
             function updateEffChart() {
+                if (isCompareMode()) return updateEffChartCompare();
                 const { models, languages } = processedData;
                 const metric = document.getElementById('metricSelect').value;
                 const lang = document.getElementById('effLanguageSelect').value;
@@ -672,8 +895,75 @@
                 charts.eff.options.scales = {
                     x: { title: { display: true, text: `Tokens per ${metric === 'text' ? 'Text' : (metric === 'word' ? 'Word' : 'Char')}` } }
                 };
+                charts.eff.options.plugins.legend = { display: false };
+                charts.eff.options.plugins.datalabels = {
+                    display: true, anchor: 'end', align: 'end',
+                    formatter: (v) => {
+                        const m = document.getElementById('metricSelect').value;
+                        const d = m === 'text' ? 0 : (m === 'word' ? 2 : 3);
+                        return v.toFixed(d);
+                    },
+                    font: { size: 12, weight: 'bold' }
+                };
                 charts.eff.update();
                 charts.eff.resize(); // Explicit resize
+            }
+
+            function updateEffChartCompare() {
+                const { languages } = processedData;
+                const metric = document.getElementById('metricSelect').value;
+                const { baseline, compare } = getComparePair();
+
+                const container = document.getElementById('effChart').parentElement;
+
+                if (!baseline || !compare) {
+                    charts.eff.data = { labels: [], datasets: [] };
+                    charts.eff.update();
+                    return;
+                }
+
+                const rows = languages
+                    .map(lang => ({
+                        lang,
+                        b: getMetricValue(baseline.results[lang], metric),
+                        c: getMetricValue(compare.results[lang], metric)
+                    }))
+                    .filter(x => x.b > 0 && x.c > 0)
+                    .sort((a, b) => b.b - a.b);
+
+                const newHeight = Math.max(400, rows.length * 32 + 50);
+                container.style.height = `${newHeight}px`;
+
+                const digits = metric === 'text' ? 0 : (metric === 'word' ? 2 : 3);
+
+                charts.eff.data = {
+                    labels: rows.map(x => x.lang),
+                    datasets: [
+                        {
+                            label: `${baseline.name} (baseline)`,
+                            data: rows.map(x => x.b),
+                            backgroundColor: 'rgb(115, 115, 115)',
+                            barThickness: 10
+                        },
+                        {
+                            label: `${compare.name}`,
+                            data: rows.map(x => x.c),
+                            backgroundColor: 'rgb(0, 0, 0)',
+                            barThickness: 10
+                        }
+                    ]
+                };
+                charts.eff.options.scales = {
+                    x: { title: { display: true, text: `Tokens per ${metric === 'text' ? 'Text' : (metric === 'word' ? 'Word' : 'Char')}` } }
+                };
+                charts.eff.options.plugins.legend = { display: true };
+                charts.eff.options.plugins.datalabels = {
+                    display: true, anchor: 'end', align: 'end',
+                    formatter: (v) => v.toFixed(digits),
+                    font: { size: 10, weight: 'bold' }
+                };
+                charts.eff.update();
+                charts.eff.resize();
             }
 
             // --- Load data from server ---
