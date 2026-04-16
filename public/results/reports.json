@@ -54,5 +54,19 @@
       "totalTokens": 260996,
       "totalCost": 0.015016400000000004
     }
+  },
+  {
+    "filename": "2026-04-16_21-01-48-857_53langs_2models.json",
+    "timestamp": "2026-04-16_21-01-48-857",
+    "summary": {
+      "totalModels": 2,
+      "processedModels": 2,
+      "modelsWithErrors": 0,
+      "totalFiles": 106,
+      "totalSuccessfulFiles": 106,
+      "totalErrors": 0,
+      "totalTokens": 541359,
+      "totalCost": 1.749578
+    }
   }
 ]
