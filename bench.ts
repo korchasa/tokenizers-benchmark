@@ -77,8 +77,14 @@ interface FileResult {
   createdAt: string;
 }
 
+interface ModelConfig {
+  id: string;
+  displayName: string;
+}
+
 interface ModelReport {
   modelId: string;
+  displayName: string;
   modelInfo: Model | null;
   results: FileResult[];
   stats: {
@@ -275,7 +281,7 @@ function getFilesToProcess(languageFilter?: string): string[] {
   try {
     const files: string[] = [];
     for (const entry of Deno.readDirSync(udhrDir)) {
-      if (entry.isFile && entry.name.endsWith('.txt') && entry.name !== 'models.txt') {
+      if (entry.isFile && entry.name.endsWith('.txt')) {
         // If language filter is specified, check if file matches
         if (languageFilter) {
           // Remove .txt extension and check if it matches the language filter
@@ -295,22 +301,27 @@ function getFilesToProcess(languageFilter?: string): string[] {
 }
 
 /**
- * Reads model IDs from models.txt file
+ * Reads model configs from models.json file. Throws on read/parse error.
  */
-function readModelsFromFile(): string[] {
-  const modelsFile = "./models.txt";
-  try {
-    const content = Deno.readTextFileSync(modelsFile);
-    const models = content
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0 && !line.startsWith('#'));
-    return models;
-  } catch (error) {
-    console.error(`❌ Error reading ${modelsFile}:`, error.message);
-    console.error("💡 Create models.txt file with one model ID per line");
-    Deno.exit(1);
+function readModelsFromFile(): ModelConfig[] {
+  const modelsFile = "./models.json";
+  const content = Deno.readTextFileSync(modelsFile);
+  const parsed = JSON.parse(content);
+  if (!Array.isArray(parsed)) {
+    throw new Error("models.json must contain an array of model configs");
   }
+  return parsed.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`Entry #${index} is not an object`);
+    }
+    if (typeof entry.id !== 'string' || entry.id.length === 0) {
+      throw new Error(`Entry #${index} is missing a non-empty "id" string`);
+    }
+    const displayName = typeof entry.displayName === 'string' && entry.displayName.length > 0
+      ? entry.displayName
+      : entry.id;
+    return { id: entry.id, displayName };
+  });
 }
 
 /**
@@ -352,7 +363,7 @@ USAGE:
 OPTIONS:
   --help, -h       Show this help
   --models         Show list of all available models
-  --model <id>     Model ID(s) to use, comma-separated (if not specified, reads from models.txt)
+  --model <id>     Model ID(s) to use, comma-separated (if not specified, reads from models.json)
   --languages      Show list of available languages
   --language <lang> Filter files by language name (e.g., "russian", "english")
   --verbose, -v    Output raw API requests and responses
@@ -411,7 +422,7 @@ function showLanguagesList() {
   try {
     const languages: string[] = [];
     for (const entry of Deno.readDirSync("./udhr")) {
-      if (entry.isFile && entry.name.endsWith('.txt') && entry.name !== 'models.txt') {
+      if (entry.isFile && entry.name.endsWith('.txt')) {
         const langName = entry.name.replace(/\.txt$/, '');
         languages.push(langName);
       }
@@ -688,14 +699,15 @@ async function showModelsList(apiKey: string, verbose: boolean = false) {
  * Processes files for a single model and returns results
  */
 async function processModel(
-  modelId: string,
+  modelConfig: ModelConfig,
   apiKey: string,
   verbose: boolean,
   createdAt: string,
   languageFilter?: string
 ): Promise<ModelReport> {
+  const { id: modelId, displayName } = modelConfig;
   console.error("\n==================================================");
-  console.error(`🔄 Processing model: ${modelId}`);
+  console.error(`🔄 Processing model: ${displayName} [${modelId}]`);
 
   // Get model information
   const modelInfo = await getModelInfo(modelId, apiKey, verbose);
@@ -703,6 +715,7 @@ async function processModel(
     console.error(`❌ Model ${modelId} not found in API`);
     return {
       modelId,
+      displayName,
       modelInfo: null,
       results: [],
       stats: {
@@ -782,6 +795,7 @@ async function processModel(
 
   return {
     modelId,
+    displayName,
     modelInfo,
     results,
     stats: {
@@ -876,24 +890,43 @@ async function main() {
   console.error(`📄 Output directory: ${outputDir}`);
 
   // Get list of models to process
-  const modelIds: string[] = [];
+  const modelConfigs: ModelConfig[] = [];
   if (specifiedModelId) {
     // Split by comma and trim each model ID, filter out empty strings
-    const models = specifiedModelId
+    const ids = specifiedModelId
       .split(',')
       .map(id => id.trim())
       .filter(id => id.length > 0);
-    modelIds.push(...models);
-    console.error(`📋 Using specified model(s): ${models.length} model(s)`);
+
+    // Try to find display names for the specified models in models.json (if it exists)
+    let knownModels: ModelConfig[] = [];
+    try {
+      knownModels = readModelsFromFile();
+    } catch {
+      // models.json is optional when --model is used explicitly
+    }
+
+    for (const id of ids) {
+      const found = knownModels.find(m => m.id === id);
+      const displayName = found ? found.displayName : id;
+      modelConfigs.push({ id, displayName });
+    }
+    console.error(`📋 Using specified model(s): ${modelConfigs.length} model(s)`);
   } else {
-    const modelsFromFile = readModelsFromFile();
-    modelIds.push(...modelsFromFile);
-    console.error(`📋 Using models from models.txt: ${modelIds.length} model(s)`);
+    try {
+      const modelsFromFile = readModelsFromFile();
+      modelConfigs.push(...modelsFromFile);
+    } catch (error) {
+      console.error(`❌ Error reading ./models.json:`, error instanceof Error ? error.message : String(error));
+      console.error('💡 Create models.json with an array of {"id": "...", "displayName": "..."} entries');
+      Deno.exit(1);
+    }
+    console.error(`📋 Using models from models.json: ${modelConfigs.length} model(s)`);
   }
 
-  if (modelIds.length === 0) {
+  if (modelConfigs.length === 0) {
     console.error("❌ No models specified");
-    console.error("💡 Use --model <id> or create models.txt file");
+    console.error("💡 Use --model <id> or populate models.json");
     Deno.exit(1);
   }
 
@@ -904,8 +937,8 @@ async function main() {
 
   // Process each model and collect results
   const modelReports: ModelReport[] = [];
-  for (const modelId of modelIds) {
-    const report = await processModel(modelId, API_KEY, verbose, createdAt, languageFilter);
+  for (const modelConfig of modelConfigs) {
+    const report = await processModel(modelConfig, API_KEY, verbose, createdAt, languageFilter);
     modelReports.push(report);
   }
 
@@ -999,7 +1032,7 @@ async function main() {
     console.error("⚠️  ERRORS DETAILS");
     console.error("==================================================");
     for (const modelReport of modelsWithErrorDetails) {
-      console.error(`\n❌ ${modelReport.modelId} (${modelReport.stats.errors.length} error(s)):`);
+      console.error(`\n❌ ${modelReport.displayName} [${modelReport.modelId}] (${modelReport.stats.errors.length} error(s)):`);
       for (const error of modelReport.stats.errors) {
         console.error(`   - ${error}`);
       }

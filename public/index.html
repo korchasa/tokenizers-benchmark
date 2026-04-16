@@ -353,7 +353,7 @@
 
                     return {
                         id: m.modelId,
-                        name: m.modelInfo?.name || m.modelId,
+                        name: m.displayName || m.modelInfo?.name || m.modelId,
                         results: resultsMap
                     };
                 });
@@ -730,6 +730,7 @@
                             if (!modelsMap.has(model.modelId)) {
                                 modelsMap.set(model.modelId, {
                                     modelId: model.modelId,
+                                    displayName: model.displayName,
                                     modelInfo: model.modelInfo,
                                     results: [],
                                     stats: { ...model.stats } // Clone stats
@@ -737,6 +738,11 @@
                             }
 
                             const existingModel = modelsMap.get(model.modelId);
+
+                            // Update display name if newer one is present
+                            if (model.displayName) {
+                                existingModel.displayName = model.displayName;
+                            }
 
                             // Update model info if newer one is present
                             if (model.modelInfo) {
